@@ -106,40 +106,66 @@ pub async fn traces_handler(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let mut spans: Vec<Span> = Vec::new();
-    let mut span_attributes: Vec<SpanAttribute> = Vec::new();
+    let spans_and_attrs: Result<Vec<(Span, Vec<SpanAttribute>)>, StatusCode> = payload
+        .resource_spans
+        .into_iter()
+        .flat_map(|resource_span| {
+            resource_span
+                .scope_spans
+                .into_iter()
+                .flat_map(|scope_span| {
+                    scope_span.spans.into_iter().map(|s| {
+                        let trace_id = s.trace_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
+                        let start_time = s.start_time().map_err(|_| StatusCode::BAD_REQUEST)?;
+                        let end_time = s.end_time().map_err(|_| StatusCode::BAD_REQUEST)?;
+                        let duration_ns = s.duration_ns().map_err(|_| StatusCode::BAD_REQUEST)?;
+                        let span_id = s.span_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
+                        let status_code = s.status_code();
+                        let status_message = s.status_message().map(|s| s.to_string());
 
-    for resource_span in payload.resource_spans {
-        for scope_span in resource_span.scope_spans {
-            for span in scope_span.spans {
-                let trace_id = span.trace_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
-                let start_time = span.start_time().map_err(|_| StatusCode::BAD_REQUEST)?;
-                let end_time = span.end_time().map_err(|_| StatusCode::BAD_REQUEST)?;
-                let duration_ns = span.duration_ns().map_err(|_| StatusCode::BAD_REQUEST)?;
-                let span_id = span.span_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
+                        let span = Span {
+                            span_id: span_id.clone(),
+                            trace_id,
+                            parent_span_id: s.parent_span_id.clone(),
+                            name: s.name.clone(),
+                            start_time,
+                            end_time,
+                            duration_ns,
+                            status_code,
+                            status_message,
+                        };
 
-                spans.push(Span {
-                    span_id: span_id.clone(),
-                    trace_id: trace_id.clone(),
-                    parent_span_id: span.parent_span_id.clone(),
-                    name: span.name.clone(),
-                    start_time,
-                    end_time,
-                    duration_ns,
-                    status_code: span.status_code(),
-                    status_message: span.status_message().map(|s| s.to_string()),
-                });
+                        let attrs: Result<Vec<SpanAttribute>, StatusCode> = s
+                            .attributes_map()
+                            .into_iter()
+                            .map(|(k, v)| {
+                                let span_id_for_attr =
+                                    s.span_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
+                                Ok(SpanAttribute {
+                                    span_id: span_id_for_attr,
+                                    key: k.clone(),
+                                    value: v.clone(),
+                                })
+                            })
+                            .collect();
 
-                for (key, value) in span.attributes_map() {
-                    span_attributes.push(SpanAttribute {
-                        span_id: span_id.clone(),
-                        key: key.clone(),
-                        value: value.clone(),
-                    });
-                }
-            }
-        }
-    }
+                        Ok((span, attrs?))
+                    })
+                })
+        })
+        .collect();
+
+    let spans_and_attrs = spans_and_attrs?;
+
+    let spans = spans_and_attrs
+        .iter()
+        .map(|(span, _)| span)
+        .collect::<Vec<&Span>>();
+
+    let span_attributes = spans_and_attrs
+        .iter()
+        .flat_map(|(_, attrs)| attrs.iter())
+        .collect::<Vec<&SpanAttribute>>();
 
     let mut span_bulk_insert_builder = QueryBuilder::new(
         "INSERT INTO spans (
@@ -149,15 +175,15 @@ pub async fn traces_handler(
     );
 
     span_bulk_insert_builder.push_values(spans, |mut b, span| {
-        b.push_bind(span.span_id)
-            .push_bind(span.trace_id)
-            .push_bind(span.parent_span_id)
-            .push_bind(span.name)
+        b.push_bind(span.span_id.clone())
+            .push_bind(span.trace_id.clone())
+            .push_bind(span.parent_span_id.clone())
+            .push_bind(span.name.clone())
             .push_bind(span.start_time)
             .push_bind(span.end_time)
             .push_bind(span.duration_ns)
             .push_bind(span.status_code)
-            .push_bind(span.status_message);
+            .push_bind(span.status_message.clone());
     });
 
     let span_bulk_insert = span_bulk_insert_builder.build();
@@ -170,10 +196,10 @@ pub async fn traces_handler(
     let mut span_attribute_bulk_insert_builder =
         QueryBuilder::new("INSERT INTO span_attributes (span_id, key, value) ");
 
-    span_attribute_bulk_insert_builder.push_values(span_attributes, |mut b, span| {
-        b.push_bind(span.span_id)
-            .push_bind(span.key)
-            .push_bind(span.value);
+    span_attribute_bulk_insert_builder.push_values(span_attributes, |mut b, attr| {
+        b.push_bind(attr.span_id.clone())
+            .push_bind(attr.key.clone())
+            .push_bind(attr.value.clone());
     });
 
     let span_attribute_bulk_insert = span_attribute_bulk_insert_builder.build();
