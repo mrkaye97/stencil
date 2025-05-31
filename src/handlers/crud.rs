@@ -204,7 +204,7 @@ pub enum StatusCode {
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Serialize)]
-#[sqlx(type_name = "span_kind", rename_all = "lowercase")]
+#[sqlx(type_name = "span_kind", rename_all = "UPPERCASE")]
 pub enum SpanKind {
     Unspecified = 0,
     Internal = 1,
