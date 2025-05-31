@@ -305,24 +305,29 @@ impl std::fmt::Display for AnyValue {
     }
 }
 
-pub struct WriteableTrace {
-    trace_id: String,
-    start_time: OffsetDateTime,
-    end_time: OffsetDateTime,
-    duration_ns: Option<i64>,
-}
-
 #[derive(Clone, Debug)]
 pub struct WriteableSpan {
     span_id: String,
     trace_id: String,
     parent_span_id: Option<String>,
-    name: String,
+    operation_name: String,
     start_time: OffsetDateTime,
     end_time: OffsetDateTime,
     duration_ns: i64,
     status_code: i32,
     status_message: Option<String>,
+    service_name: Option<String>,
+    span_kind: Option<String>,
+    instrumentation_library: Option<String>,
+}
+
+pub struct WriteableTrace {
+    trace_id: String,
+    start_time: OffsetDateTime,
+    end_time: OffsetDateTime,
+    duration_ns: Option<i64>,
+    service_name: Option<String>,
+    span_count: i32,
 }
 
 #[derive(Clone, Debug)]
