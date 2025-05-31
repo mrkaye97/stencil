@@ -1,11 +1,11 @@
 use sqlx::postgres::PgPoolOptions;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber;
 
 mod handlers;
-use handlers::handlers_routes;
+use handlers::create_router;
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error> {
@@ -21,7 +21,7 @@ async fn main() -> Result<(), sqlx::Error> {
 
     sqlx::migrate!("./migrations").run(&pool).await?;
 
-    let router = handlers_routes();
+    let router = create_router(Arc::new(pool));
 
     let app = router.layer(CorsLayer::permissive());
 
