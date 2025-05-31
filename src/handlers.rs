@@ -9,6 +9,7 @@ use serde_json::{Value, json, to_string, to_string_pretty};
 use sqlx::PgPool;
 
 mod types;
+use time::OffsetDateTime;
 pub use types::TracesRequest;
 
 pub async fn traces_handler(
@@ -20,16 +21,39 @@ pub async fn traces_handler(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    for resource_span in payload.resource_spans {
-        for scope_span in resource_span.scope_spans {
-            for span in scope_span.spans {
-                let trace_id = span.trace_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
-                let start_time = span.start_time().map_err(|_| StatusCode::BAD_REQUEST)?;
-                let end_time = span.end_time().map_err(|_| StatusCode::BAD_REQUEST)?;
-                let duration_ns = span.duration_ns().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let mut start_time = OffsetDateTime::now_utc();
+    let mut end_time = OffsetDateTime::from_unix_timestamp(0).unwrap();
+    let mut trace_id = String::new();
 
-                sqlx::query!(
-                    r#"
+    for resource_span in payload.resource_spans.iter().clone() {
+        for scope_span in resource_span.scope_spans.iter().clone() {
+            for span in scope_span.spans.iter().clone() {
+                let span_start_time = span.start_time().map_err(|_| StatusCode::BAD_REQUEST)?;
+                let span_end_time = span.end_time().map_err(|_| StatusCode::BAD_REQUEST)?;
+
+                if start_time > span_start_time {
+                    start_time = span_start_time;
+                }
+
+                if end_time < span_end_time {
+                    end_time = span_end_time;
+                }
+
+                if let Ok(id) = span.trace_id_hex() {
+                    trace_id = id;
+                }
+            }
+        }
+    }
+
+    let duration_ns = if start_time < end_time {
+        (end_time - start_time).whole_nanoseconds() as i64
+    } else {
+        0
+    };
+
+    sqlx::query!(
+        r#"
                 INSERT INTO traces (trace_id, start_time, end_time, duration_ns)
                 VALUES ($1, $2, $3, $4)
                 ON CONFLICT (trace_id) DO UPDATE SET
@@ -37,14 +61,22 @@ pub async fn traces_handler(
                     end_time = GREATEST(traces.end_time, $3),
                     duration_ns = GREATEST(traces.duration_ns, $4)
                 "#,
-                    trace_id,
-                    start_time,
-                    end_time,
-                    duration_ns
-                )
-                .execute(&mut *tx)
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        trace_id,
+        start_time,
+        end_time,
+        duration_ns
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    for resource_span in payload.resource_spans {
+        for scope_span in resource_span.scope_spans {
+            for span in scope_span.spans {
+                let trace_id = span.trace_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
+                let start_time = span.start_time().map_err(|_| StatusCode::BAD_REQUEST)?;
+                let end_time = span.end_time().map_err(|_| StatusCode::BAD_REQUEST)?;
+                let duration_ns = span.duration_ns().map_err(|_| StatusCode::BAD_REQUEST)?;
 
                 let span_id = span.span_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
                 sqlx::query!(
