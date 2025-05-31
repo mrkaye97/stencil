@@ -7,7 +7,8 @@ use axum::routing::post;
 use axum::{Json, Router};
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Value, json, to_string, to_string_pretty};
-use sqlx::{PgPool, QueryBuilder};
+use sqlx::postgres::PgArguments;
+use sqlx::{PgPool, Postgres, QueryBuilder};
 
 mod types;
 use time::OffsetDateTime;
@@ -20,6 +21,7 @@ struct Trace {
     duration_ns: Option<i64>,
 }
 
+#[derive(Clone, Debug)]
 struct Span {
     span_id: String,
     trace_id: String,
@@ -32,26 +34,99 @@ struct Span {
     status_message: Option<String>,
 }
 
+#[derive(Clone, Debug)]
 struct SpanAttribute {
     span_id: String,
     key: String,
     value: String,
 }
 
-pub async fn traces_handler(
-    State(pool): State<Arc<PgPool>>,
-    Json(payload): Json<TracesRequest>,
-) -> Result<Json<Value>, StatusCode> {
-    let mut tx = pool
-        .begin()
+async fn insert_traces(
+    traces: &Vec<Trace>,
+    tx: &mut sqlx::Transaction<'_, Postgres>,
+) -> Result<(), StatusCode> {
+    let mut query_builder: QueryBuilder<Postgres> =
+        QueryBuilder::new("INSERT INTO traces (trace_id, start_time, end_time, duration_ns) ");
+
+    query_builder.push_values(traces, |mut b, trace| {
+        b.push_bind(trace.trace_id.clone())
+            .push_bind(trace.start_time)
+            .push_bind(trace.end_time)
+            .push_bind(trace.duration_ns);
+    });
+
+    let query = query_builder.build();
+    query
+        .execute(&mut **tx)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    Ok(())
+}
+
+async fn insert_spans(
+    spans: &Vec<Span>,
+    tx: &mut sqlx::Transaction<'_, Postgres>,
+) -> Result<(), StatusCode> {
+    let mut query_builder = QueryBuilder::new(
+        "INSERT INTO spans (
+                    span_id, trace_id, parent_span_id, operation_name,
+                    start_time, end_time, duration_ns, status_code, status_message
+                ) ",
+    );
+
+    query_builder.push_values(spans, |mut b, span| {
+        b.push_bind(span.span_id.clone())
+            .push_bind(span.trace_id.clone())
+            .push_bind(span.parent_span_id.clone())
+            .push_bind(span.name.clone())
+            .push_bind(span.start_time)
+            .push_bind(span.end_time)
+            .push_bind(span.duration_ns)
+            .push_bind(span.status_code)
+            .push_bind(span.status_message.clone());
+    });
+
+    let query = query_builder.build();
+
+    query
+        .execute(&mut **tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(())
+}
+
+async fn insert_span_attributes(
+    span_attributes: &Vec<SpanAttribute>,
+    tx: &mut sqlx::Transaction<'_, Postgres>,
+) -> Result<(), StatusCode> {
+    let mut query_builder = QueryBuilder::new("INSERT INTO span_attributes (span_id, key, value) ");
+
+    query_builder.push_values(span_attributes, |mut b, attr| {
+        b.push_bind(attr.span_id.clone())
+            .push_bind(attr.key.clone())
+            .push_bind(attr.value.clone());
+    });
+
+    let query = query_builder.build();
+
+    query
+        .execute(&mut **tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(())
+}
+
+fn flatten_spans_and_attrs(
+    payload: &TracesRequest,
+) -> Result<(Vec<Trace>, Vec<Span>, Vec<SpanAttribute>), StatusCode> {
     let mut trace_id_to_start_and_end_times = HashMap::new();
 
-    for resource_span in payload.resource_spans.iter().clone() {
-        for scope_span in resource_span.scope_spans.iter().clone() {
-            for span in scope_span.spans.iter().clone() {
+    for resource_span in payload.resource_spans.iter() {
+        for scope_span in resource_span.scope_spans.iter() {
+            for span in scope_span.spans.iter() {
                 let span_start_time = span.start_time().map_err(|_| StatusCode::BAD_REQUEST)?;
                 let span_end_time = span.end_time().map_err(|_| StatusCode::BAD_REQUEST)?;
                 let trace_id = span.trace_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -90,31 +165,17 @@ pub async fn traces_handler(
         traces.push(trace);
     }
 
-    let mut query_builder =
-        QueryBuilder::new("INSERT INTO traces (trace_id, start_time, end_time, duration_ns) ");
-
-    query_builder.push_values(traces, |mut b, trace| {
-        b.push_bind(trace.trace_id)
-            .push_bind(trace.start_time)
-            .push_bind(trace.end_time)
-            .push_bind(trace.duration_ns);
-    });
-    let query = query_builder.build();
-
-    query
-        .execute(&mut *tx)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
     let spans_and_attrs: Result<Vec<(Span, Vec<SpanAttribute>)>, StatusCode> = payload
         .resource_spans
-        .into_iter()
+        .iter()
+        .clone()
         .flat_map(|resource_span| {
             resource_span
                 .scope_spans
-                .into_iter()
+                .iter()
+                .clone()
                 .flat_map(|scope_span| {
-                    scope_span.spans.into_iter().map(|s| {
+                    scope_span.spans.iter().clone().map(|s| {
                         let trace_id = s.trace_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
                         let start_time = s.start_time().map_err(|_| StatusCode::BAD_REQUEST)?;
                         let end_time = s.end_time().map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -159,55 +220,33 @@ pub async fn traces_handler(
 
     let spans = spans_and_attrs
         .iter()
-        .map(|(span, _)| span)
-        .collect::<Vec<&Span>>();
+        .map(|(span, _)| span.clone())
+        .collect::<Vec<Span>>();
 
     let span_attributes = spans_and_attrs
         .iter()
-        .flat_map(|(_, attrs)| attrs.iter())
-        .collect::<Vec<&SpanAttribute>>();
+        .clone()
+        .flat_map(|(_, attrs)| attrs.iter().map(|attr| attr.clone()))
+        .collect::<Vec<SpanAttribute>>();
 
-    let mut span_bulk_insert_builder = QueryBuilder::new(
-        "INSERT INTO spans (
-                    span_id, trace_id, parent_span_id, operation_name,
-                    start_time, end_time, duration_ns, status_code, status_message
-                ) ",
-    );
+    Ok((traces, spans, span_attributes))
+}
 
-    span_bulk_insert_builder.push_values(spans, |mut b, span| {
-        b.push_bind(span.span_id.clone())
-            .push_bind(span.trace_id.clone())
-            .push_bind(span.parent_span_id.clone())
-            .push_bind(span.name.clone())
-            .push_bind(span.start_time)
-            .push_bind(span.end_time)
-            .push_bind(span.duration_ns)
-            .push_bind(span.status_code)
-            .push_bind(span.status_message.clone());
-    });
-
-    let span_bulk_insert = span_bulk_insert_builder.build();
-
-    span_bulk_insert
-        .execute(&mut *tx)
+pub async fn traces_handler(
+    State(pool): State<Arc<PgPool>>,
+    Json(payload): Json<TracesRequest>,
+) -> Result<Json<Value>, StatusCode> {
+    let mut tx = pool
+        .begin()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let mut span_attribute_bulk_insert_builder =
-        QueryBuilder::new("INSERT INTO span_attributes (span_id, key, value) ");
+    let (traces, spans, span_attributes) =
+        flatten_spans_and_attrs(&payload).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    span_attribute_bulk_insert_builder.push_values(span_attributes, |mut b, attr| {
-        b.push_bind(attr.span_id.clone())
-            .push_bind(attr.key.clone())
-            .push_bind(attr.value.clone());
-    });
-
-    let span_attribute_bulk_insert = span_attribute_bulk_insert_builder.build();
-
-    span_attribute_bulk_insert
-        .execute(&mut *tx)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    insert_traces(&traces, &mut tx).await?;
+    insert_spans(&spans, &mut tx).await?;
+    insert_span_attributes(&span_attributes, &mut tx).await?;
 
     tx.commit()
         .await
