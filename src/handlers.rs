@@ -12,7 +12,7 @@ mod crud;
 pub use crud::TracesRequest;
 pub use crud::{flatten_spans_and_attrs, insert_span_attributes, insert_spans, insert_traces};
 
-pub async fn traces_handler(
+pub async fn insert_traces_handler(
     State(pool): State<Arc<PgPool>>,
     Json(payload): Json<TracesRequest>,
 ) -> Result<Json<Value>, StatusCode> {
@@ -42,6 +42,7 @@ async fn health_check() -> &'static str {
 pub fn create_router(pool: Arc<PgPool>) -> Router {
     Router::new()
         .route("/health", axum::routing::get(health_check))
-        .route("/v1/traces", post(traces_handler))
+        .route("/api/echo", axum::routing::get(health_check))
+        .route("/v1/traces", post(insert_traces_handler))
         .with_state(pool)
 }
