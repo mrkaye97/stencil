@@ -20,6 +20,24 @@ struct Trace {
     duration_ns: Option<i64>,
 }
 
+struct Span {
+    span_id: String,
+    trace_id: String,
+    parent_span_id: Option<String>,
+    name: String,
+    start_time: OffsetDateTime,
+    end_time: OffsetDateTime,
+    duration_ns: i64,
+    status_code: i32,
+    status_message: Option<String>,
+}
+
+struct SpanAttribute {
+    span_id: String,
+    key: String,
+    value: String,
+}
+
 pub async fn traces_handler(
     State(pool): State<Arc<PgPool>>,
     Json(payload): Json<TracesRequest>,
@@ -88,6 +106,9 @@ pub async fn traces_handler(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    let mut spans: Vec<Span> = Vec::new();
+    let mut span_attributes: Vec<SpanAttribute> = Vec::new();
+
     for resource_span in payload.resource_spans {
         for scope_span in resource_span.scope_spans {
             for span in scope_span.spans {
@@ -97,53 +118,70 @@ pub async fn traces_handler(
                 let duration_ns = span.duration_ns().map_err(|_| StatusCode::BAD_REQUEST)?;
                 let span_id = span.span_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
 
-                sqlx::query!(
-                    r#"
-                INSERT INTO spans (
-                    span_id, trace_id, parent_span_id, operation_name,
-                    start_time, end_time, duration_ns, status_code, status_message
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT (span_id) DO NOTHING
-                "#,
-                    span_id,
-                    trace_id,
-                    span.parent_span_id,
-                    span.name,
+                spans.push(Span {
+                    span_id: span_id.clone(),
+                    trace_id: trace_id.clone(),
+                    parent_span_id: span.parent_span_id.clone(),
+                    name: span.name.clone(),
                     start_time,
                     end_time,
                     duration_ns,
-                    span.status_code(),
-                    span.status_message()
-                )
-                .execute(&mut *tx)
-                .await
-                .map_err(|err| {
-                    println!("Failed to insert span: {:?}", span);
-                    eprintln!("Error: {}", span.status_message().unwrap_or_default());
-                    println!("Error details: {:?}", err);
-
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
+                    status_code: span.status_code(),
+                    status_message: span.status_message().map(|s| s.to_string()),
+                });
 
                 for (key, value) in span.attributes_map() {
-                    sqlx::query!(
-                        r#"
-                    INSERT INTO span_attributes (span_id, key, value)
-                    VALUES ($1, $2, $3)
-                    ON CONFLICT (span_id, key) DO UPDATE SET value = $3
-                    "#,
-                        span_id,
-                        key,
-                        value
-                    )
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                    span_attributes.push(SpanAttribute {
+                        span_id: span_id.clone(),
+                        key: key.clone(),
+                        value: value.clone(),
+                    });
                 }
             }
         }
     }
+
+    let mut span_bulk_insert_builder = QueryBuilder::new(
+        "INSERT INTO spans (
+                    span_id, trace_id, parent_span_id, operation_name,
+                    start_time, end_time, duration_ns, status_code, status_message
+                ) ",
+    );
+
+    span_bulk_insert_builder.push_values(spans, |mut b, span| {
+        b.push_bind(span.span_id)
+            .push_bind(span.trace_id)
+            .push_bind(span.parent_span_id)
+            .push_bind(span.name)
+            .push_bind(span.start_time)
+            .push_bind(span.end_time)
+            .push_bind(span.duration_ns)
+            .push_bind(span.status_code)
+            .push_bind(span.status_message);
+    });
+
+    let span_bulk_insert = span_bulk_insert_builder.build();
+
+    span_bulk_insert
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let mut span_attribute_bulk_insert_builder =
+        QueryBuilder::new("INSERT INTO span_attributes (span_id, key, value) ");
+
+    span_attribute_bulk_insert_builder.push_values(span_attributes, |mut b, span| {
+        b.push_bind(span.span_id)
+            .push_bind(span.key)
+            .push_bind(span.value);
+    });
+
+    let span_attribute_bulk_insert = span_attribute_bulk_insert_builder.build();
+
+    span_attribute_bulk_insert
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     tx.commit()
         .await
