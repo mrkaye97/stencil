@@ -318,6 +318,7 @@ pub struct WriteableSpan {
     status_message: Option<String>,
     span_kind: SpanKind,
     instrumentation_library: Option<String>,
+    service_name: Option<String>,
 }
 
 pub struct WriteableTrace {
@@ -325,7 +326,6 @@ pub struct WriteableTrace {
     start_time: OffsetDateTime,
     end_time: OffsetDateTime,
     duration_ns: Option<i64>,
-    service_name: Option<String>,
     span_count: i32,
 }
 
@@ -340,16 +340,14 @@ pub async fn insert_traces(
     traces: &Vec<WriteableTrace>,
     tx: &mut sqlx::Transaction<'_, Postgres>,
 ) -> Result<(), axum::http::StatusCode> {
-    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "INSERT INTO trace (trace_id, start_time, end_time, duration_ns, service_id, span_count) ",
-    );
+    let mut query_builder: QueryBuilder<Postgres> =
+        QueryBuilder::new("INSERT INTO trace (id, started_at, ended_at, duration_ns, span_count) ");
 
     query_builder.push_values(traces, |mut b, trace| {
         b.push_bind(trace.trace_id.clone())
             .push_bind(trace.start_time)
             .push_bind(trace.end_time)
             .push_bind(trace.duration_ns)
-            .push_bind(trace.service_name.clone())
             .push_bind(trace.span_count);
     });
 
@@ -368,8 +366,8 @@ pub async fn insert_spans(
 ) -> Result<(), axum::http::StatusCode> {
     let mut query_builder = QueryBuilder::new(
         "INSERT INTO span (
-                    span_id, trace_id, parent_span_id, operation_name,
-                    start_time, end_time, duration_ns, status_code, status_message, kind, instrumentation_library
+                    id, trace_id, parent_span_id, operation_name,
+                    started_at, ended_at, duration_ns, status_code, status_message, kind, instrumentation_library, service_name
                 ) ",
     );
 
@@ -384,7 +382,8 @@ pub async fn insert_spans(
             .push_bind(span.status_code)
             .push_bind(span.status_message.clone())
             .push_bind(span.span_kind.clone())
-            .push_bind(span.instrumentation_library.clone());
+            .push_bind(span.instrumentation_library.clone())
+            .push_bind(span.service_name.clone());
     });
 
     let query = query_builder.build();
@@ -449,8 +448,6 @@ pub fn flatten_spans_and_attrs(
     let mut trace_id_to_info = HashMap::new();
 
     for resource_span in payload.resource_spans.iter() {
-        let service_name = extract_service_name(&resource_span.resource);
-
         for scope_span in resource_span.scope_spans.iter() {
             for span in scope_span.spans.iter() {
                 let span_start_time = span
@@ -467,10 +464,10 @@ pub fn flatten_spans_and_attrs(
 
                 match trace_id_to_info.entry(trace_id.clone()) {
                     Entry::Vacant(e) => {
-                        e.insert((span_start_time, span_end_time, service_name.clone(), 1));
+                        e.insert((span_start_time, span_end_time, 1));
                     }
                     Entry::Occupied(mut e) => {
-                        let (start_time, end_time, _, span_count) = e.get_mut();
+                        let (start_time, end_time, span_count) = e.get_mut();
                         if *start_time > span_start_time {
                             *start_time = span_start_time;
                         }
@@ -486,14 +483,13 @@ pub fn flatten_spans_and_attrs(
 
     let mut traces: Vec<WriteableTrace> = Vec::new();
 
-    for (trace_id, (start_time, end_time, service_name, span_count)) in &trace_id_to_info {
+    for (trace_id, (start_time, end_time, span_count)) in &trace_id_to_info {
         let duration_ns = (*end_time - *start_time).whole_nanoseconds().to_i64();
         let trace = WriteableTrace {
             trace_id: trace_id.clone(),
             start_time: *start_time,
             end_time: *end_time,
             duration_ns,
-            service_name: service_name.clone(),
             span_count: *span_count,
         };
 
@@ -545,6 +541,7 @@ pub fn flatten_spans_and_attrs(
                             status_message,
                             span_kind: s.kind.clone().unwrap_or(SpanKind::Unspecified),
                             instrumentation_library: instrumentation_library.clone(),
+                            service_name: extract_service_name(&resource_span.resource),
                         };
 
                         let attrs: Result<Vec<WriteableSpanAttribute>, axum::http::StatusCode> = s
