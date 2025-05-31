@@ -203,8 +203,8 @@ pub enum StatusCode {
     Error = 2,
 }
 
-#[derive(Debug, Serialize)]
-#[repr(u32)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Serialize)]
+#[sqlx(type_name = "span_kind", rename_all = "lowercase")]
 pub enum SpanKind {
     Unspecified = 0,
     Internal = 1,
@@ -316,8 +316,7 @@ pub struct WriteableSpan {
     duration_ns: i64,
     status_code: i32,
     status_message: Option<String>,
-    service_name: Option<String>,
-    span_kind: Option<String>,
+    span_kind: SpanKind,
     instrumentation_library: Option<String>,
 }
 
@@ -341,14 +340,17 @@ pub async fn insert_traces(
     traces: &Vec<WriteableTrace>,
     tx: &mut sqlx::Transaction<'_, Postgres>,
 ) -> Result<(), axum::http::StatusCode> {
-    let mut query_builder: QueryBuilder<Postgres> =
-        QueryBuilder::new("INSERT INTO traces (trace_id, start_time, end_time, duration_ns) ");
+    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+        "INSERT INTO trace (trace_id, start_time, end_time, duration_ns, service_id, span_count) ",
+    );
 
     query_builder.push_values(traces, |mut b, trace| {
         b.push_bind(trace.trace_id.clone())
             .push_bind(trace.start_time)
             .push_bind(trace.end_time)
-            .push_bind(trace.duration_ns);
+            .push_bind(trace.duration_ns)
+            .push_bind(trace.service_name.clone())
+            .push_bind(trace.span_count);
     });
 
     let query = query_builder.build();
@@ -365,9 +367,9 @@ pub async fn insert_spans(
     tx: &mut sqlx::Transaction<'_, Postgres>,
 ) -> Result<(), axum::http::StatusCode> {
     let mut query_builder = QueryBuilder::new(
-        "INSERT INTO spans (
+        "INSERT INTO span (
                     span_id, trace_id, parent_span_id, operation_name,
-                    start_time, end_time, duration_ns, status_code, status_message
+                    start_time, end_time, duration_ns, status_code, status_message, kind, instrumentation_library
                 ) ",
     );
 
@@ -380,7 +382,9 @@ pub async fn insert_spans(
             .push_bind(span.end_time)
             .push_bind(span.duration_ns)
             .push_bind(span.status_code)
-            .push_bind(span.status_message.clone());
+            .push_bind(span.status_message.clone())
+            .push_bind(span.span_kind.clone())
+            .push_bind(span.instrumentation_library.clone());
     });
 
     let query = query_builder.build();
@@ -397,7 +401,7 @@ pub async fn insert_span_attributes(
     span_attributes: &Vec<WriteableSpanAttribute>,
     tx: &mut sqlx::Transaction<'_, Postgres>,
 ) -> Result<(), axum::http::StatusCode> {
-    let mut query_builder = QueryBuilder::new("INSERT INTO span_attributes (span_id, key, value) ");
+    let mut query_builder = QueryBuilder::new("INSERT INTO span_attribute (span_id, key, value) ");
 
     query_builder.push_values(span_attributes, |mut b, attr| {
         b.push_bind(attr.span_id.clone())
@@ -432,17 +436,6 @@ fn extract_instrumentation_library(scope: &Option<InstrumentationScope>) -> Opti
     scope.as_ref()?.name.clone()
 }
 
-fn span_kind_to_string(kind: &Option<SpanKind>) -> Option<String> {
-    kind.as_ref().map(|k| match k {
-        SpanKind::Unspecified => "UNSPECIFIED".to_string(),
-        SpanKind::Internal => "INTERNAL".to_string(),
-        SpanKind::Server => "SERVER".to_string(),
-        SpanKind::Client => "CLIENT".to_string(),
-        SpanKind::Producer => "PRODUCER".to_string(),
-        SpanKind::Consumer => "CONSUMER".to_string(),
-    })
-}
-
 pub fn flatten_spans_and_attrs(
     payload: &TracesRequest,
 ) -> Result<
@@ -459,8 +452,6 @@ pub fn flatten_spans_and_attrs(
         let service_name = extract_service_name(&resource_span.resource);
 
         for scope_span in resource_span.scope_spans.iter() {
-            let instrumentation_library = extract_instrumentation_library(&scope_span.scope);
-
             for span in scope_span.spans.iter() {
                 let span_start_time = span
                     .start_time()
@@ -541,7 +532,6 @@ pub fn flatten_spans_and_attrs(
                             .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
                         let status_code = s.status_code();
                         let status_message = s.status_message();
-                        let span_kind = span_kind_to_string(&s.kind);
 
                         let span = WriteableSpan {
                             span_id: span_id.clone(),
@@ -553,8 +543,7 @@ pub fn flatten_spans_and_attrs(
                             duration_ns,
                             status_code,
                             status_message,
-                            service_name: extract_service_name(&resource_span.resource),
-                            span_kind,
+                            span_kind: s.kind.clone().unwrap_or(SpanKind::Unspecified),
                             instrumentation_library: instrumentation_library.clone(),
                         };
 

@@ -14,12 +14,22 @@ CREATE TABLE trace (
     started_at TIMESTAMPTZ,
     ended_at TIMESTAMPTZ,
     duration_ns BIGINT,
-    service_id UUID REFERENCES service(id)
+    service_id UUID REFERENCES service(id),
+    span_count INTEGER DEFAULT 0
 );
 
 CREATE INDEX idx_trace_service_id_started_at ON trace(service_id, started_at);
 
 -- Spans
+CREATE TYPE span_kind AS ENUM (
+    'UNSPECIFIED',
+    'INTERNAL',
+    'SERVER',
+    'CLIENT',
+    'PRODUCER',
+    'CONSUMER',
+)
+
 CREATE TABLE span (
     id VARCHAR(16) PRIMARY KEY,
     trace_id VARCHAR(32) REFERENCES trace(id),
@@ -29,7 +39,9 @@ CREATE TABLE span (
     ended_at TIMESTAMPTZ,
     duration_ns BIGINT,
     status_code INTEGER,
-    status_message TEXT
+    status_message TEXT,
+    kind span_kind NOT NULL DEFAULT 'UNSPECIFIED',
+    instrumentation_library TEXT
 );
 
 CREATE INDEX idx_span_trace_id_started_at ON span(trace_id, started_at);
