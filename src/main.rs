@@ -1,3 +1,4 @@
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
@@ -7,9 +8,18 @@ mod handlers;
 use handlers::handlers_routes;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), sqlx::Error> {
     tracing_subscriber::fmt::init();
+
     let _ = dotenvy::dotenv();
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await?;
+
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
     let router = handlers_routes();
 
@@ -26,4 +36,6 @@ async fn main() {
     )
     .await
     .unwrap();
+
+    Ok(())
 }
