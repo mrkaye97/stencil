@@ -7,10 +7,18 @@ use axum::routing::post;
 use axum::{Json, Router};
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Value, json, to_string, to_string_pretty};
-use sqlx::PgPool;
+use sqlx::{PgPool, QueryBuilder};
 
 mod types;
+use time::OffsetDateTime;
 pub use types::TracesRequest;
+
+struct Trace {
+    trace_id: String,
+    start_time: OffsetDateTime,
+    end_time: OffsetDateTime,
+    duration_ns: Option<i64>,
+}
 
 pub async fn traces_handler(
     State(pool): State<Arc<PgPool>>,
@@ -50,27 +58,35 @@ pub async fn traces_handler(
         }
     }
 
+    let mut traces: Vec<Trace> = Vec::new();
+
     for (trace_id, (start_time, end_time)) in &trace_id_to_start_and_end_times {
         let duration_ns = (*end_time - *start_time).whole_nanoseconds().to_i64();
+        let trace = Trace {
+            trace_id: trace_id.clone(),
+            start_time: *start_time,
+            end_time: *end_time,
+            duration_ns,
+        };
 
-        sqlx::query!(
-            r#"
-            INSERT INTO traces (trace_id, start_time, end_time, duration_ns)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (trace_id) DO UPDATE SET
-                start_time = LEAST(traces.start_time, $2),
-                end_time = GREATEST(traces.end_time, $3),
-                duration_ns = GREATEST(traces.duration_ns, $4)
-            "#,
-            trace_id,
-            start_time,
-            end_time,
-            duration_ns
-        )
+        traces.push(trace);
+    }
+
+    let mut query_builder =
+        QueryBuilder::new("INSERT INTO traces (trace_id, start_time, end_time, duration_ns) ");
+
+    query_builder.push_values(traces, |mut b, trace| {
+        b.push_bind(trace.trace_id)
+            .push_bind(trace.start_time)
+            .push_bind(trace.end_time)
+            .push_bind(trace.duration_ns);
+    });
+    let query = query_builder.build();
+
+    query
         .execute(&mut *tx)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    }
 
     for resource_span in payload.resource_spans {
         for scope_span in resource_span.scope_spans {
