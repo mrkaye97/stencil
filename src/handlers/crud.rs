@@ -375,7 +375,7 @@ pub async fn insert_spans(
         b.push_bind(span.span_id.clone())
             .push_bind(span.trace_id.clone())
             .push_bind(span.parent_span_id.clone())
-            .push_bind(span.name.clone())
+            .push_bind(span.operation_name.clone())
             .push_bind(span.start_time)
             .push_bind(span.end_time)
             .push_bind(span.duration_ns)
@@ -415,6 +415,34 @@ pub async fn insert_span_attributes(
     Ok(())
 }
 
+fn extract_service_name(resource: &Option<Resource>) -> Option<String> {
+    resource
+        .as_ref()?
+        .attributes
+        .as_ref()?
+        .iter()
+        .find(|kv| kv.key == "service.name")
+        .and_then(|kv| match &kv.value {
+            AnyValue::StringValue { string_value } => Some(string_value.clone()),
+            _ => None,
+        })
+}
+
+fn extract_instrumentation_library(scope: &Option<InstrumentationScope>) -> Option<String> {
+    scope.as_ref()?.name.clone()
+}
+
+fn span_kind_to_string(kind: &Option<SpanKind>) -> Option<String> {
+    kind.as_ref().map(|k| match k {
+        SpanKind::Unspecified => "UNSPECIFIED".to_string(),
+        SpanKind::Internal => "INTERNAL".to_string(),
+        SpanKind::Server => "SERVER".to_string(),
+        SpanKind::Client => "CLIENT".to_string(),
+        SpanKind::Producer => "PRODUCER".to_string(),
+        SpanKind::Consumer => "CONSUMER".to_string(),
+    })
+}
+
 pub fn flatten_spans_and_attrs(
     payload: &TracesRequest,
 ) -> Result<
@@ -425,10 +453,14 @@ pub fn flatten_spans_and_attrs(
     ),
     axum::http::StatusCode,
 > {
-    let mut trace_id_to_start_and_end_times = HashMap::new();
+    let mut trace_id_to_info = HashMap::new();
 
     for resource_span in payload.resource_spans.iter() {
+        let service_name = extract_service_name(&resource_span.resource);
+
         for scope_span in resource_span.scope_spans.iter() {
+            let instrumentation_library = extract_instrumentation_library(&scope_span.scope);
+
             for span in scope_span.spans.iter() {
                 let span_start_time = span
                     .start_time()
@@ -442,18 +474,19 @@ pub fn flatten_spans_and_attrs(
 
                 use std::collections::hash_map::Entry;
 
-                match trace_id_to_start_and_end_times.entry(trace_id.clone()) {
+                match trace_id_to_info.entry(trace_id.clone()) {
                     Entry::Vacant(e) => {
-                        e.insert((span_start_time, span_end_time));
+                        e.insert((span_start_time, span_end_time, service_name.clone(), 1));
                     }
                     Entry::Occupied(mut e) => {
-                        let (start_time, end_time) = e.get_mut();
+                        let (start_time, end_time, _, span_count) = e.get_mut();
                         if *start_time > span_start_time {
                             *start_time = span_start_time;
                         }
                         if *end_time < span_end_time {
                             *end_time = span_end_time;
                         }
+                        *span_count += 1;
                     }
                 }
             }
@@ -462,13 +495,15 @@ pub fn flatten_spans_and_attrs(
 
     let mut traces: Vec<WriteableTrace> = Vec::new();
 
-    for (trace_id, (start_time, end_time)) in &trace_id_to_start_and_end_times {
+    for (trace_id, (start_time, end_time, service_name, span_count)) in &trace_id_to_info {
         let duration_ns = (*end_time - *start_time).whole_nanoseconds().to_i64();
         let trace = WriteableTrace {
             trace_id: trace_id.clone(),
             start_time: *start_time,
             end_time: *end_time,
             duration_ns,
+            service_name: service_name.clone(),
+            span_count: *span_count,
         };
 
         traces.push(trace);
@@ -480,14 +515,17 @@ pub fn flatten_spans_and_attrs(
     > = payload
         .resource_spans
         .iter()
-        .clone()
         .flat_map(|resource_span| {
+            let service_name = extract_service_name(&resource_span.resource);
+
             resource_span
                 .scope_spans
                 .iter()
-                .clone()
-                .flat_map(|scope_span| {
-                    scope_span.spans.iter().clone().map(|s| {
+                .flat_map(move |scope_span| {
+                    let instrumentation_library =
+                        extract_instrumentation_library(&scope_span.scope);
+
+                    scope_span.spans.iter().map(move |s| {
                         let trace_id = s
                             .trace_id_hex()
                             .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
@@ -504,18 +542,22 @@ pub fn flatten_spans_and_attrs(
                             .span_id_hex()
                             .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
                         let status_code = s.status_code();
-                        let status_message = s.status_message().map(|s| s.to_string());
+                        let status_message = s.status_message();
+                        let span_kind = span_kind_to_string(&s.kind);
 
                         let span = WriteableSpan {
                             span_id: span_id.clone(),
                             trace_id,
                             parent_span_id: s.parent_span_id.clone(),
-                            name: s.name.clone(),
+                            operation_name: s.name.clone(),
                             start_time,
                             end_time,
                             duration_ns,
                             status_code,
                             status_message,
+                            service_name: service_name.clone(),
+                            span_kind,
+                            instrumentation_library: instrumentation_library.clone(),
                         };
 
                         let attrs: Result<Vec<WriteableSpanAttribute>, axum::http::StatusCode> = s
@@ -527,8 +569,8 @@ pub fn flatten_spans_and_attrs(
                                     .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
                                 Ok(WriteableSpanAttribute {
                                     span_id: span_id_for_attr,
-                                    key: k.clone(),
-                                    value: v.clone(),
+                                    key: k,
+                                    value: v,
                                 })
                             })
                             .collect();
@@ -548,8 +590,7 @@ pub fn flatten_spans_and_attrs(
 
     let span_attributes = spans_and_attrs
         .iter()
-        .clone()
-        .flat_map(|(_, attrs)| attrs.iter().map(|attr| attr.clone()))
+        .flat_map(|(_, attrs)| attrs.iter().cloned())
         .collect::<Vec<WriteableSpanAttribute>>();
 
     Ok((traces, spans, span_attributes))
