@@ -6,8 +6,7 @@ use axum::http::StatusCode;
 use axum::routing::post;
 use axum::{Json, Router};
 use rust_decimal::prelude::ToPrimitive;
-use serde_json::{Value, json, to_string, to_string_pretty};
-use sqlx::postgres::PgArguments;
+use serde_json::{Value, json};
 use sqlx::{PgPool, Postgres, QueryBuilder};
 
 mod types;
