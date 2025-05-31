@@ -516,8 +516,6 @@ pub fn flatten_spans_and_attrs(
         .resource_spans
         .iter()
         .flat_map(|resource_span| {
-            let service_name = extract_service_name(&resource_span.resource);
-
             resource_span
                 .scope_spans
                 .iter()
@@ -555,7 +553,7 @@ pub fn flatten_spans_and_attrs(
                             duration_ns,
                             status_code,
                             status_message,
-                            service_name: service_name.clone(),
+                            service_name: extract_service_name(&resource_span.resource),
                             span_kind,
                             instrumentation_library: instrumentation_library.clone(),
                         };
