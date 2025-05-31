@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use axum::extract::State;
+use axum::body::Body;
+use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::routing::post;
 use axum::{Json, Router};
-use serde_json::{Value, json};
+use serde_json::{Value, json, to_string, to_string_pretty};
 use sqlx::PgPool;
 
 mod types;
@@ -29,13 +30,13 @@ pub async fn traces_handler(
 
                 sqlx::query!(
                     r#"
-                    INSERT INTO traces (trace_id, start_time, end_time, duration_ns)
-                    VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (trace_id) DO UPDATE SET
-                        start_time = LEAST(traces.start_time, $2),
-                        end_time = GREATEST(traces.end_time, $3),
-                        duration_ns = GREATEST(traces.duration_ns, $4)
-                    "#,
+                INSERT INTO traces (trace_id, start_time, end_time, duration_ns)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (trace_id) DO UPDATE SET
+                    start_time = LEAST(traces.start_time, $2),
+                    end_time = GREATEST(traces.end_time, $3),
+                    duration_ns = GREATEST(traces.duration_ns, $4)
+                "#,
                     trace_id,
                     start_time,
                     end_time,
@@ -48,13 +49,13 @@ pub async fn traces_handler(
                 let span_id = span.span_id_hex().map_err(|_| StatusCode::BAD_REQUEST)?;
                 sqlx::query!(
                     r#"
-                    INSERT INTO spans (
-                        span_id, trace_id, parent_span_id, operation_name,
-                        start_time, end_time, duration_ns, status_code, status_message
-                    )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    ON CONFLICT (span_id) DO NOTHING
-                    "#,
+                INSERT INTO spans (
+                    span_id, trace_id, parent_span_id, operation_name,
+                    start_time, end_time, duration_ns, status_code, status_message
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (span_id) DO NOTHING
+                "#,
                     span_id,
                     trace_id,
                     span.parent_span_id,
@@ -72,10 +73,10 @@ pub async fn traces_handler(
                 for (key, value) in span.attributes_map() {
                     sqlx::query!(
                         r#"
-                        INSERT INTO span_attributes (span_id, key, value)
-                        VALUES ($1, $2, $3)
-                        ON CONFLICT (span_id, key) DO UPDATE SET value = $3
-                        "#,
+                    INSERT INTO span_attributes (span_id, key, value)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (span_id, key) DO UPDATE SET value = $3
+                    "#,
                         span_id,
                         key,
                         value

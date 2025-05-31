@@ -1,6 +1,51 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use time::OffsetDateTime;
+
+fn empty_string_as_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+    match opt {
+        Some(s) if s.is_empty() => Ok(None),
+        Some(s) => Ok(Some(s)),
+        None => Ok(None),
+    }
+}
+
+impl<'de> Deserialize<'de> for StatusCode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = u32::deserialize(deserializer)?;
+        match value {
+            0 => Ok(StatusCode::Unset),
+            1 => Ok(StatusCode::Ok),
+            2 => Ok(StatusCode::Error),
+            _ => Ok(StatusCode::Unset),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SpanKind {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = u32::deserialize(deserializer)?;
+        match value {
+            0 => Ok(SpanKind::Unspecified),
+            1 => Ok(SpanKind::Internal),
+            2 => Ok(SpanKind::Server),
+            3 => Ok(SpanKind::Client),
+            4 => Ok(SpanKind::Producer),
+            5 => Ok(SpanKind::Consumer),
+            _ => Ok(SpanKind::Unspecified),
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TracesRequest {
@@ -13,23 +58,35 @@ pub struct ResourceSpans {
     pub resource: Option<Resource>,
     #[serde(rename = "scopeSpans")]
     pub scope_spans: Vec<ScopeSpans>,
+    #[serde(rename = "schemaUrl", deserialize_with = "empty_string_as_none")]
+    pub schema_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Resource {
     pub attributes: Option<Vec<KeyValue>>,
+    #[serde(rename = "droppedAttributesCount")]
+    pub dropped_attributes_count: Option<u32>,
+    #[serde(rename = "entityRefs")]
+    pub entity_refs: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ScopeSpans {
     pub scope: Option<InstrumentationScope>,
     pub spans: Vec<Span>,
+    #[serde(rename = "schemaUrl", deserialize_with = "empty_string_as_none")]
+    pub schema_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct InstrumentationScope {
     pub name: Option<String>,
+    #[serde(deserialize_with = "empty_string_as_none")]
     pub version: Option<String>,
+    pub attributes: Option<Vec<KeyValue>>,
+    #[serde(rename = "droppedAttributesCount")]
+    pub dropped_attributes_count: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -38,7 +95,7 @@ pub struct Span {
     pub trace_id: String,
     #[serde(rename = "spanId")]
     pub span_id: String,
-    #[serde(rename = "parentSpanId")]
+    #[serde(rename = "parentSpanId", deserialize_with = "empty_string_as_none")]
     pub parent_span_id: Option<String>,
     pub name: String,
     pub kind: Option<SpanKind>,
@@ -48,6 +105,17 @@ pub struct Span {
     pub end_time_unix_nano: String,
     pub attributes: Option<Vec<KeyValue>>,
     pub status: Option<Status>,
+    #[serde(rename = "droppedAttributesCount")]
+    pub dropped_attributes_count: Option<u32>,
+    #[serde(rename = "droppedEventsCount")]
+    pub dropped_events_count: Option<u32>,
+    #[serde(rename = "droppedLinksCount")]
+    pub dropped_links_count: Option<u32>,
+    pub events: Option<Vec<Event>>,
+    pub flags: Option<u32>,
+    pub links: Option<Vec<Link>>,
+    #[serde(rename = "traceState", deserialize_with = "empty_string_as_none")]
+    pub trace_state: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -59,12 +127,30 @@ pub struct KeyValue {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum AnyValue {
-    String(String),
-    Bool(bool),
-    Int(i64),
-    Double(f64),
-    ArrayValue { array_value: ArrayValue },
-    KvlistValue { kvlist_value: KvListValue },
+    StringValue {
+        #[serde(rename = "stringValue")]
+        string_value: String,
+    },
+    BoolValue {
+        #[serde(rename = "boolValue")]
+        bool_value: bool,
+    },
+    IntValue {
+        #[serde(rename = "intValue")]
+        int_value: i64,
+    },
+    DoubleValue {
+        #[serde(rename = "doubleValue")]
+        double_value: f64,
+    },
+    ArrayValue {
+        #[serde(rename = "arrayValue")]
+        array_value: ArrayValue,
+    },
+    KvlistValue {
+        #[serde(rename = "kvlistValue")]
+        kvlist_value: KvListValue,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -78,34 +164,50 @@ pub struct KvListValue {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Status {
-    pub code: Option<StatusCode>,
-    pub message: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub enum StatusCode {
-    #[serde(rename = "STATUS_CODE_UNSET")]
-    Unset = 0,
-    #[serde(rename = "STATUS_CODE_OK")]
-    Ok = 1,
-    #[serde(rename = "STATUS_CODE_ERROR")]
-    Error = 2,
+pub struct Event {
+    pub name: String,
+    #[serde(rename = "timeUnixNano")]
+    pub time_unix_nano: String,
+    pub attributes: Option<Vec<KeyValue>>,
+    #[serde(rename = "droppedAttributesCount")]
+    pub dropped_attributes_count: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Link {
+    #[serde(rename = "traceId")]
+    pub trace_id: String,
+    #[serde(rename = "spanId")]
+    pub span_id: String,
+    #[serde(rename = "traceState")]
+    pub trace_state: Option<String>,
+    pub attributes: Option<Vec<KeyValue>>,
+    #[serde(rename = "droppedAttributesCount")]
+    pub dropped_attributes_count: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Status {
+    pub code: Option<StatusCode>,
+    #[serde(deserialize_with = "empty_string_as_none")]
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub enum StatusCode {
+    Unset = 0,
+    Ok = 1,
+    Error = 2,
+}
+
+#[derive(Debug, Serialize)]
+#[repr(u32)]
 pub enum SpanKind {
-    #[serde(rename = "SPAN_KIND_UNSPECIFIED")]
     Unspecified = 0,
-    #[serde(rename = "SPAN_KIND_INTERNAL")]
     Internal = 1,
-    #[serde(rename = "SPAN_KIND_SERVER")]
     Server = 2,
-    #[serde(rename = "SPAN_KIND_CLIENT")]
     Client = 3,
-    #[serde(rename = "SPAN_KIND_PRODUCER")]
     Producer = 4,
-    #[serde(rename = "SPAN_KIND_CONSUMER")]
     Consumer = 5,
 }
 
@@ -168,10 +270,10 @@ impl Span {
 impl std::fmt::Display for AnyValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AnyValue::String(s) => write!(f, "{}", s),
-            AnyValue::Bool(b) => write!(f, "{}", b),
-            AnyValue::Int(i) => write!(f, "{}", i),
-            AnyValue::Double(d) => write!(f, "{}", d),
+            AnyValue::StringValue { string_value } => write!(f, "{}", string_value),
+            AnyValue::BoolValue { bool_value } => write!(f, "{}", bool_value),
+            AnyValue::IntValue { int_value } => write!(f, "{}", int_value),
+            AnyValue::DoubleValue { double_value } => write!(f, "{}", double_value),
             AnyValue::ArrayValue { array_value } => {
                 write!(
                     f,
