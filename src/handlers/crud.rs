@@ -56,19 +56,6 @@ pub struct TracesRequest {
     pub resource_spans: Vec<ResourceSpans>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
-pub struct SearchTracesRequest {
-    pub start: u64,
-    pub end: u64,
-    pub limit: Option<u32>,
-    pub service: Option<String>,
-    pub operation: Option<String>,
-    #[serde(rename = "minDuration", default)]
-    pub min_duration: Option<u64>,
-    #[serde(rename = "maxDuration", default)]
-    pub max_duration: Option<u64>,
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ResourceSpans {
     pub resource: Option<Resource>,
@@ -334,7 +321,6 @@ pub struct WriteableSpan {
     service_name: Option<String>,
 }
 
-#[derive(sqlx::FromRow)]
 pub struct WriteableTrace {
     trace_id: String,
     start_time: OffsetDateTime,
