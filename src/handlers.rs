@@ -121,8 +121,8 @@ async fn search_traces_handler(
 
             ReadTrace {
                 trace_id: trace.id,
-                root_service_name: "".to_string(),
-                root_trace_name: "".to_string(),
+                root_service_name: "foo-bar".to_string(),
+                root_trace_name: "foo-bar".to_string(),
                 start_time_ns,
                 duration_ns,
                 span_set,
