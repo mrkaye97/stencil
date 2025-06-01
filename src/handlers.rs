@@ -42,7 +42,6 @@ async fn health_check() -> &'static str {
 pub fn create_router(pool: Arc<PgPool>) -> Router {
     Router::new()
         .route("/health", axum::routing::get(health_check))
-        .route("/api/echo", axum::routing::get(health_check))
         .route("/v1/traces", post(insert_traces_handler))
         .with_state(pool)
 }
