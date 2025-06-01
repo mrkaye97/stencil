@@ -45,25 +45,17 @@ pub async fn insert_traces_handler(
 }
 
 #[derive(Serialize)]
-struct SpanSet {
-    spans: i32,
-    matched: i32,
-}
-
-#[derive(Serialize)]
 struct ReadTrace {
     #[serde(rename = "traceID")]
     trace_id: String,
-    #[serde(rename = "traceService")]
+    #[serde(rename = "rootServiceName")]
     root_service_name: String,
-    #[serde(rename = "traceName")]
+    #[serde(rename = "rootTraceName")]
     root_trace_name: String,
-    #[serde(rename = "startTime")]
+    #[serde(rename = "startTimeUnixNano")]
     start_time_ns: i128,
-    #[serde(rename = "traceDuration")]
+    #[serde(rename = "durationMs")]
     duration_ms: i64,
-    #[serde(rename = "foo.bar")]
-    span_set: SpanSet,
 }
 
 #[derive(Serialize)]
@@ -122,11 +114,6 @@ async fn search_traces_handler(
     let result: Vec<ReadTrace> = traces
         .into_iter()
         .map(|trace| {
-            let span_set = SpanSet {
-                spans: trace.span_count,
-                matched: trace.span_count,
-            };
-
             let duration_ns = trace.duration_ns.unwrap_or(0);
             let start_time_ns = trace.started_at.unwrap().unix_timestamp_nanos();
             let duration_ms = (duration_ns as f64 / 1_000_000.0).round() as i64;
@@ -137,7 +124,6 @@ async fn search_traces_handler(
                 root_trace_name: "foo-bar".to_string(),
                 start_time_ns,
                 duration_ms,
-                span_set,
             }
         })
         .collect();
