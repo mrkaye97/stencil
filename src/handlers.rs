@@ -60,15 +60,10 @@ struct ReadTrace {
     span_set: SpanSet,
 }
 
-#[derive(Serialize)]
-struct SearchTracesResponse {
-    traces: Vec<ReadTrace>,
-}
-
 async fn search_traces_handler(
     State(pool): State<Arc<PgPool>>,
     Query(params): Query<SearchTracesRequest>,
-) -> Result<Json<SearchTracesResponse>, StatusCode> {
+) -> Result<Json<Vec<ReadTrace>>, StatusCode> {
     let limit = params
         .limit
         .unwrap_or(100)
@@ -135,7 +130,7 @@ async fn search_traces_handler(
         })
         .collect();
 
-    Ok(Json(SearchTracesResponse { traces: result }))
+    Ok(Json(result))
 }
 
 #[derive(Serialize)]
