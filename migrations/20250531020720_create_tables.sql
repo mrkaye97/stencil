@@ -19,7 +19,7 @@ CREATE TYPE span_kind AS ENUM (
 
 CREATE TABLE span (
     id VARCHAR(16) PRIMARY KEY,
-    trace_id VARCHAR(32) REFERENCES trace(id),
+    trace_id VARCHAR(32) NOT NULL REFERENCES trace(id),
     parent_span_id VARCHAR(16),
     operation_name TEXT,
     started_at TIMESTAMPTZ,
@@ -39,7 +39,7 @@ CREATE INDEX idx_span_status_code ON span(status_code);
 CREATE INDEX idx_trace_service_name ON span(service_name);
 
 CREATE TABLE span_attribute (
-    span_id VARCHAR(16) REFERENCES span(id),
+    span_id VARCHAR(16) NOT NULL REFERENCES span(id),
     key TEXT NOT NULL,
     value TEXT NOT NULL,
     PRIMARY KEY (span_id, key)
