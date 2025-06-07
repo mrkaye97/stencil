@@ -1,21 +1,38 @@
 use std::sync::Arc;
 
+use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::routing::post;
 use axum::{Json, Router};
+use prost::Message;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
+use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
+
 mod crud;
 
-pub use crud::TracesRequest;
 pub use crud::{flatten_spans_and_attrs, insert_span_attributes, insert_spans, insert_traces};
 
 pub async fn insert_traces_handler(
     State(pool): State<Arc<PgPool>>,
-    Json(payload): Json<TracesRequest>,
+    headers: HeaderMap,
+    body: Bytes,
 ) -> Result<Json<Value>, StatusCode> {
+    let content_type = headers
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    if !content_type.contains("application/x-protobuf")
+        && !content_type.contains("application/protobuf")
+    {
+        return Err(StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    let payload = ExportTraceServiceRequest::decode(body).map_err(|_| StatusCode::BAD_REQUEST)?;
+
     let mut tx = pool
         .begin()
         .await
@@ -24,9 +41,15 @@ pub async fn insert_traces_handler(
     let (traces, spans, span_attributes) =
         flatten_spans_and_attrs(&payload).map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    insert_traces(&traces, &mut tx).await?;
-    insert_spans(&spans, &mut tx).await?;
-    insert_span_attributes(&span_attributes, &mut tx).await?;
+    insert_traces(&traces, &mut tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    insert_spans(&spans, &mut tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    insert_span_attributes(&span_attributes, &mut tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     tx.commit()
         .await

@@ -1,308 +1,23 @@
-use serde::{Deserialize, Deserializer, Serialize};
+use rust_decimal::prelude::ToPrimitive;
+use sqlx::{Postgres, QueryBuilder};
 use std::collections::HashMap;
 use time::OffsetDateTime;
 
-use rust_decimal::prelude::ToPrimitive;
-use sqlx::{Postgres, QueryBuilder};
+use opentelemetry_proto::tonic::collector;
+use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
+use opentelemetry_proto::tonic::common::v1::{AnyValue, any_value::Value};
+use opentelemetry_proto::tonic::resource::v1::Resource;
+use opentelemetry_proto::tonic::trace::v1::{ScopeSpans, Span};
 
-fn empty_string_as_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let opt = Option::<String>::deserialize(deserializer)?;
-    match opt {
-        Some(s) if s.is_empty() => Ok(None),
-        Some(s) => Ok(Some(s)),
-        None => Ok(None),
-    }
-}
-
-impl<'de> Deserialize<'de> for StatusCode {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = u32::deserialize(deserializer)?;
-        match value {
-            0 => Ok(StatusCode::Unset),
-            1 => Ok(StatusCode::Ok),
-            2 => Ok(StatusCode::Error),
-            _ => Ok(StatusCode::Unset),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for SpanKind {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = u32::deserialize(deserializer)?;
-        match value {
-            0 => Ok(SpanKind::Unspecified),
-            1 => Ok(SpanKind::Internal),
-            2 => Ok(SpanKind::Server),
-            3 => Ok(SpanKind::Client),
-            4 => Ok(SpanKind::Producer),
-            5 => Ok(SpanKind::Consumer),
-            _ => Ok(SpanKind::Unspecified),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TracesRequest {
-    #[serde(rename = "resourceSpans")]
-    pub resource_spans: Vec<ResourceSpans>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ResourceSpans {
-    pub resource: Option<Resource>,
-    #[serde(rename = "scopeSpans")]
-    pub scope_spans: Vec<ScopeSpans>,
-    #[serde(rename = "schemaUrl", deserialize_with = "empty_string_as_none")]
-    pub schema_url: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Resource {
-    pub attributes: Option<Vec<KeyValue>>,
-    #[serde(rename = "droppedAttributesCount")]
-    pub dropped_attributes_count: Option<u32>,
-    #[serde(rename = "entityRefs")]
-    pub entity_refs: Option<Vec<String>>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ScopeSpans {
-    pub scope: Option<InstrumentationScope>,
-    pub spans: Vec<Span>,
-    #[serde(rename = "schemaUrl", deserialize_with = "empty_string_as_none")]
-    pub schema_url: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct InstrumentationScope {
-    pub name: Option<String>,
-    #[serde(deserialize_with = "empty_string_as_none")]
-    pub version: Option<String>,
-    pub attributes: Option<Vec<KeyValue>>,
-    #[serde(rename = "droppedAttributesCount")]
-    pub dropped_attributes_count: Option<u32>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Span {
-    #[serde(rename = "traceId")]
-    pub trace_id: String,
-    #[serde(rename = "spanId")]
-    pub span_id: String,
-    #[serde(rename = "parentSpanId", deserialize_with = "empty_string_as_none")]
-    pub parent_span_id: Option<String>,
-    pub name: String,
-    pub kind: Option<SpanKind>,
-    #[serde(rename = "startTimeUnixNano")]
-    pub start_time_unix_nano: String,
-    #[serde(rename = "endTimeUnixNano")]
-    pub end_time_unix_nano: String,
-    pub attributes: Option<Vec<KeyValue>>,
-    pub status: Option<Status>,
-    #[serde(rename = "droppedAttributesCount")]
-    pub dropped_attributes_count: Option<u32>,
-    #[serde(rename = "droppedEventsCount")]
-    pub dropped_events_count: Option<u32>,
-    #[serde(rename = "droppedLinksCount")]
-    pub dropped_links_count: Option<u32>,
-    pub events: Option<Vec<Event>>,
-    pub flags: Option<u32>,
-    pub links: Option<Vec<Link>>,
-    #[serde(rename = "traceState", deserialize_with = "empty_string_as_none")]
-    pub trace_state: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct KeyValue {
-    pub key: String,
-    pub value: AnyValue,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum AnyValue {
-    StringValue {
-        #[serde(rename = "stringValue")]
-        string_value: String,
-    },
-    BoolValue {
-        #[serde(rename = "boolValue")]
-        bool_value: bool,
-    },
-    IntValue {
-        #[serde(rename = "intValue")]
-        int_value: i64,
-    },
-    DoubleValue {
-        #[serde(rename = "doubleValue")]
-        double_value: f64,
-    },
-    ArrayValue {
-        #[serde(rename = "arrayValue")]
-        array_value: ArrayValue,
-    },
-    KvlistValue {
-        #[serde(rename = "kvlistValue")]
-        kvlist_value: KvListValue,
-    },
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ArrayValue {
-    pub values: Vec<AnyValue>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct KvListValue {
-    pub values: Vec<KeyValue>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Event {
-    pub name: String,
-    #[serde(rename = "timeUnixNano")]
-    pub time_unix_nano: String,
-    pub attributes: Option<Vec<KeyValue>>,
-    #[serde(rename = "droppedAttributesCount")]
-    pub dropped_attributes_count: Option<u32>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Link {
-    #[serde(rename = "traceId")]
-    pub trace_id: String,
-    #[serde(rename = "spanId")]
-    pub span_id: String,
-    #[serde(rename = "traceState")]
-    pub trace_state: Option<String>,
-    pub attributes: Option<Vec<KeyValue>>,
-    #[serde(rename = "droppedAttributesCount")]
-    pub dropped_attributes_count: Option<u32>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Status {
-    pub code: Option<StatusCode>,
-    #[serde(deserialize_with = "empty_string_as_none")]
-    pub message: Option<String>,
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub enum StatusCode {
-    Unset = 0,
-    Ok = 1,
-    Error = 2,
-}
-
-#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Serialize)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type)]
 #[sqlx(type_name = "span_kind", rename_all = "UPPERCASE")]
-pub enum SpanKind {
+pub enum DbSpanKind {
     Unspecified = 0,
     Internal = 1,
     Server = 2,
     Client = 3,
     Producer = 4,
     Consumer = 5,
-}
-
-impl Span {
-    pub fn trace_id_hex(&self) -> Result<String, Box<dyn std::error::Error>> {
-        if self.trace_id.len() != 32 {
-            return Err("Invalid trace_id length".into());
-        }
-        Ok(self.trace_id.clone())
-    }
-
-    pub fn span_id_hex(&self) -> Result<String, Box<dyn std::error::Error>> {
-        if self.span_id.len() != 16 {
-            return Err("Invalid span_id length".into());
-        }
-        Ok(self.span_id.clone())
-    }
-
-    pub fn start_time(&self) -> Result<OffsetDateTime, Box<dyn std::error::Error>> {
-        let nanos: i128 = self.start_time_unix_nano.parse()?;
-        Ok(OffsetDateTime::from_unix_timestamp_nanos(nanos)?)
-    }
-
-    pub fn end_time(&self) -> Result<OffsetDateTime, Box<dyn std::error::Error>> {
-        let nanos: i128 = self.end_time_unix_nano.parse()?;
-        Ok(OffsetDateTime::from_unix_timestamp_nanos(nanos)?)
-    }
-
-    pub fn duration_ns(&self) -> Result<i64, Box<dyn std::error::Error>> {
-        let start: u64 = self.start_time_unix_nano.parse()?;
-        let end: u64 = self.end_time_unix_nano.parse()?;
-        Ok((end - start) as i64)
-    }
-
-    pub fn status_code(&self) -> i32 {
-        self.status
-            .as_ref()
-            .and_then(|s| s.code.as_ref())
-            .map(|c| c.clone() as i32)
-            .unwrap_or(0)
-    }
-
-    pub fn status_message(&self) -> Option<String> {
-        self.status.as_ref().and_then(|s| s.message.clone())
-    }
-
-    pub fn attributes_map(&self) -> HashMap<String, String> {
-        self.attributes
-            .as_ref()
-            .map(|attrs| {
-                attrs
-                    .iter()
-                    .map(|kv| (kv.key.clone(), kv.value.to_string()))
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-}
-
-impl std::fmt::Display for AnyValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AnyValue::StringValue { string_value } => write!(f, "{}", string_value),
-            AnyValue::BoolValue { bool_value } => write!(f, "{}", bool_value),
-            AnyValue::IntValue { int_value } => write!(f, "{}", int_value),
-            AnyValue::DoubleValue { double_value } => write!(f, "{}", double_value),
-            AnyValue::ArrayValue { array_value } => {
-                write!(
-                    f,
-                    "[{}]",
-                    array_value
-                        .values
-                        .iter()
-                        .map(|v| v.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            AnyValue::KvlistValue { kvlist_value } => {
-                write!(
-                    f,
-                    "{{{}}}",
-                    kvlist_value
-                        .values
-                        .iter()
-                        .map(|kv| format!("{}:{}", kv.key, kv.value))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -316,7 +31,7 @@ pub struct WriteableSpan {
     duration_ns: i64,
     status_code: i32,
     status_message: Option<String>,
-    span_kind: SpanKind,
+    span_kind: DbSpanKind,
     instrumentation_library: Option<String>,
     service_name: Option<String>,
 }
@@ -336,10 +51,149 @@ pub struct WriteableSpanAttribute {
     value: String,
 }
 
+pub trait SpanExt {
+    fn trace_id_hex(&self) -> Result<String, Box<dyn std::error::Error>>;
+    fn span_id_hex(&self) -> Result<String, Box<dyn std::error::Error>>;
+    fn parent_span_id_hex(&self) -> Option<String>;
+    fn start_time(&self) -> Result<OffsetDateTime, Box<dyn std::error::Error>>;
+    fn end_time(&self) -> Result<OffsetDateTime, Box<dyn std::error::Error>>;
+    fn duration_ns(&self) -> Result<i64, Box<dyn std::error::Error>>;
+    fn status_code(&self) -> i32;
+    fn status_message(&self) -> Option<String>;
+    fn attributes_map(&self) -> HashMap<String, String>;
+    fn span_kind_to_db(&self) -> DbSpanKind;
+}
+
+impl SpanExt for Span {
+    fn trace_id_hex(&self) -> Result<String, Box<dyn std::error::Error>> {
+        if self.trace_id.len() != 16 {
+            return Err("Invalid trace_id length - expected 16 bytes".into());
+        }
+        Ok(hex::encode(&self.trace_id))
+    }
+
+    fn span_id_hex(&self) -> Result<String, Box<dyn std::error::Error>> {
+        if self.span_id.len() != 8 {
+            return Err("Invalid span_id length - expected 8 bytes".into());
+        }
+        Ok(hex::encode(&self.span_id))
+    }
+
+    fn parent_span_id_hex(&self) -> Option<String> {
+        if self.parent_span_id.is_empty() {
+            None
+        } else {
+            Some(hex::encode(&self.parent_span_id))
+        }
+    }
+
+    fn start_time(&self) -> Result<OffsetDateTime, Box<dyn std::error::Error>> {
+        Ok(OffsetDateTime::from_unix_timestamp_nanos(
+            self.start_time_unix_nano as i128,
+        )?)
+    }
+
+    fn end_time(&self) -> Result<OffsetDateTime, Box<dyn std::error::Error>> {
+        Ok(OffsetDateTime::from_unix_timestamp_nanos(
+            self.end_time_unix_nano as i128,
+        )?)
+    }
+
+    fn duration_ns(&self) -> Result<i64, Box<dyn std::error::Error>> {
+        Ok((self.end_time_unix_nano - self.start_time_unix_nano) as i64)
+    }
+
+    fn status_code(&self) -> i32 {
+        self.status.as_ref().map(|s| s.code as i32).unwrap_or(0)
+    }
+
+    fn status_message(&self) -> Option<String> {
+        self.status.as_ref().and_then(|s| {
+            if s.message.is_empty() {
+                None
+            } else {
+                Some(s.message.clone())
+            }
+        })
+    }
+
+    fn attributes_map(&self) -> HashMap<String, String> {
+        self.attributes
+            .iter()
+            .map(|kv| (kv.key.clone(), any_value_to_string(&kv.value)))
+            .collect()
+    }
+
+    fn span_kind_to_db(&self) -> DbSpanKind {
+        match self.kind {
+            0 => DbSpanKind::Unspecified,
+            1 => DbSpanKind::Internal,
+            2 => DbSpanKind::Server,
+            3 => DbSpanKind::Client,
+            4 => DbSpanKind::Producer,
+            5 => DbSpanKind::Consumer,
+            _ => DbSpanKind::Unspecified,
+        }
+    }
+}
+
+fn any_value_to_string(value: &Option<AnyValue>) -> String {
+    match value {
+        Some(any_value) => match &any_value.value {
+            Some(Value::StringValue(s)) => s.clone(),
+            Some(Value::BoolValue(b)) => b.to_string(),
+            Some(Value::IntValue(i)) => i.to_string(),
+            Some(Value::DoubleValue(d)) => d.to_string(),
+            Some(Value::ArrayValue(arr)) => {
+                let values: Vec<String> = arr
+                    .values
+                    .iter()
+                    .map(|v| any_value_to_string(&Some(v.clone())))
+                    .collect();
+                format!("[{}]", values.join(", "))
+            }
+            Some(Value::KvlistValue(kvlist)) => {
+                let pairs: Vec<String> = kvlist
+                    .values
+                    .iter()
+                    .map(|kv| format!("{}:{}", kv.key, any_value_to_string(&kv.value)))
+                    .collect();
+                format!("{{{}}}", pairs.join(", "))
+            }
+            Some(Value::BytesValue(bytes)) => hex::encode(bytes),
+            None => String::new(),
+        },
+        None => String::new(),
+    }
+}
+
+fn extract_service_name(resource: &Option<Resource>) -> Option<String> {
+    resource
+        .as_ref()?
+        .attributes
+        .iter()
+        .find(|kv| kv.key == "service.name")
+        .and_then(|kv| match &kv.value {
+            Some(any_value) => match &any_value.value {
+                Some(Value::StringValue(s)) => Some(s.clone()),
+                _ => None,
+            },
+            None => None,
+        })
+}
+
+fn extract_instrumentation_library(scope_spans: &ScopeSpans) -> Option<String> {
+    Some(scope_spans.scope.as_ref()?.name.clone())
+}
+
 pub async fn insert_traces(
     traces: &Vec<WriteableTrace>,
     tx: &mut sqlx::Transaction<'_, Postgres>,
-) -> Result<(), axum::http::StatusCode> {
+) -> Result<(), tonic::Status> {
+    if traces.is_empty() {
+        return Ok(());
+    }
+
     let mut query_builder: QueryBuilder<Postgres> =
         QueryBuilder::new("INSERT INTO trace (id, started_at, ended_at, duration_ns, span_count) ");
 
@@ -355,7 +209,7 @@ pub async fn insert_traces(
     query
         .execute(&mut **tx)
         .await
-        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| tonic::Status::internal(format!("Database error: {}", e)))?;
 
     Ok(())
 }
@@ -363,7 +217,11 @@ pub async fn insert_traces(
 pub async fn insert_spans(
     spans: &Vec<WriteableSpan>,
     tx: &mut sqlx::Transaction<'_, Postgres>,
-) -> Result<(), axum::http::StatusCode> {
+) -> Result<(), tonic::Status> {
+    if spans.is_empty() {
+        return Ok(());
+    }
+
     let mut query_builder = QueryBuilder::new(
         "INSERT INTO span (
                     id, trace_id, parent_span_id, operation_name,
@@ -391,7 +249,7 @@ pub async fn insert_spans(
     query
         .execute(&mut **tx)
         .await
-        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| tonic::Status::internal(format!("Database error: {}", e)))?;
 
     Ok(())
 }
@@ -399,7 +257,11 @@ pub async fn insert_spans(
 pub async fn insert_span_attributes(
     span_attributes: &Vec<WriteableSpanAttribute>,
     tx: &mut sqlx::Transaction<'_, Postgres>,
-) -> Result<(), axum::http::StatusCode> {
+) -> Result<(), tonic::Status> {
+    if span_attributes.is_empty() {
+        return Ok(());
+    }
+
     let mut query_builder = QueryBuilder::new("INSERT INTO span_attribute (span_id, key, value) ");
 
     query_builder.push_values(span_attributes, |mut b, attr| {
@@ -413,52 +275,35 @@ pub async fn insert_span_attributes(
     query
         .execute(&mut **tx)
         .await
-        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| tonic::Status::internal(format!("Database error: {}", e)))?;
 
     Ok(())
 }
 
-fn extract_service_name(resource: &Option<Resource>) -> Option<String> {
-    resource
-        .as_ref()?
-        .attributes
-        .as_ref()?
-        .iter()
-        .find(|kv| kv.key == "service.name")
-        .and_then(|kv| match &kv.value {
-            AnyValue::StringValue { string_value } => Some(string_value.clone()),
-            _ => None,
-        })
-}
-
-fn extract_instrumentation_library(scope: &Option<InstrumentationScope>) -> Option<String> {
-    scope.as_ref()?.name.clone()
-}
-
 pub fn flatten_spans_and_attrs(
-    payload: &TracesRequest,
+    payload: &ExportTraceServiceRequest,
 ) -> Result<
     (
         Vec<WriteableTrace>,
         Vec<WriteableSpan>,
         Vec<WriteableSpanAttribute>,
     ),
-    axum::http::StatusCode,
+    tonic::Status,
 > {
     let mut trace_id_to_info = HashMap::new();
 
     for resource_span in payload.resource_spans.iter() {
         for scope_span in resource_span.scope_spans.iter() {
             for span in scope_span.spans.iter() {
-                let span_start_time = span
-                    .start_time()
-                    .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                let span_end_time = span
-                    .end_time()
-                    .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                let trace_id = span
-                    .trace_id_hex()
-                    .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
+                let span_start_time = span.start_time().map_err(|e| {
+                    tonic::Status::invalid_argument(format!("Invalid start time: {}", e))
+                })?;
+                let span_end_time = span.end_time().map_err(|e| {
+                    tonic::Status::invalid_argument(format!("Invalid end time: {}", e))
+                })?;
+                let trace_id = span.trace_id_hex().map_err(|e| {
+                    tonic::Status::invalid_argument(format!("Invalid trace ID: {}", e))
+                })?;
 
                 use std::collections::hash_map::Entry;
 
@@ -482,7 +327,6 @@ pub fn flatten_spans_and_attrs(
     }
 
     let mut traces: Vec<WriteableTrace> = Vec::new();
-
     for (trace_id, (start_time, end_time, span_count)) in &trace_id_to_info {
         let duration_ns = (*end_time - *start_time).whole_nanoseconds().to_i64();
         let trace = WriteableTrace {
@@ -492,78 +336,71 @@ pub fn flatten_spans_and_attrs(
             duration_ns,
             span_count: *span_count,
         };
-
         traces.push(trace);
     }
 
-    let spans_and_attrs: Result<
-        Vec<(WriteableSpan, Vec<WriteableSpanAttribute>)>,
-        axum::http::StatusCode,
-    > = payload
-        .resource_spans
-        .iter()
-        .flat_map(|resource_span| {
-            resource_span
-                .scope_spans
-                .iter()
-                .flat_map(move |scope_span| {
-                    let instrumentation_library =
-                        extract_instrumentation_library(&scope_span.scope);
+    let spans_and_attrs: Result<Vec<(WriteableSpan, Vec<WriteableSpanAttribute>)>, tonic::Status> =
+        payload
+            .resource_spans
+            .iter()
+            .flat_map(|resource_span| {
+                resource_span
+                    .scope_spans
+                    .iter()
+                    .flat_map(move |scope_span| {
+                        let instrumentation_library = extract_instrumentation_library(scope_span);
+                        let service_name = extract_service_name(&resource_span.resource);
 
-                    scope_span.spans.iter().map(move |s| {
-                        let trace_id = s
-                            .trace_id_hex()
-                            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                        let start_time = s
-                            .start_time()
-                            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                        let end_time = s
-                            .end_time()
-                            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                        let duration_ns = s
-                            .duration_ns()
-                            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                        let span_id = s
-                            .span_id_hex()
-                            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                        let status_code = s.status_code();
-                        let status_message = s.status_message();
+                        scope_span.spans.iter().map(move |span| {
+                            let trace_id = span.trace_id_hex().map_err(|e| {
+                                tonic::Status::invalid_argument(format!("Invalid trace ID: {}", e))
+                            })?;
+                            let span_id = span.span_id_hex().map_err(|e| {
+                                tonic::Status::invalid_argument(format!("Invalid span ID: {}", e))
+                            })?;
+                            let start_time = span.start_time().map_err(|e| {
+                                tonic::Status::invalid_argument(format!(
+                                    "Invalid start time: {}",
+                                    e
+                                ))
+                            })?;
+                            let end_time = span.end_time().map_err(|e| {
+                                tonic::Status::invalid_argument(format!("Invalid end time: {}", e))
+                            })?;
+                            let duration_ns = span.duration_ns().map_err(|e| {
+                                tonic::Status::invalid_argument(format!("Invalid duration: {}", e))
+                            })?;
 
-                        let span = WriteableSpan {
-                            span_id: span_id.clone(),
-                            trace_id,
-                            parent_span_id: s.parent_span_id.clone(),
-                            operation_name: s.name.clone(),
-                            start_time,
-                            end_time,
-                            duration_ns,
-                            status_code,
-                            status_message,
-                            span_kind: s.kind.clone().unwrap_or(SpanKind::Unspecified),
-                            instrumentation_library: instrumentation_library.clone(),
-                            service_name: extract_service_name(&resource_span.resource),
-                        };
+                            let writeable_span = WriteableSpan {
+                                span_id: span_id.clone(),
+                                trace_id,
+                                parent_span_id: span.parent_span_id_hex(),
+                                operation_name: span.name.clone(),
+                                start_time,
+                                end_time,
+                                duration_ns,
+                                status_code: span.status_code(),
+                                status_message: span.status_message(),
+                                span_kind: span.span_kind_to_db(),
+                                instrumentation_library: instrumentation_library.clone(),
+                                service_name: service_name.clone(),
+                            };
 
-                        let attrs: Result<Vec<WriteableSpanAttribute>, axum::http::StatusCode> = s
-                            .attributes_map()
-                            .into_iter()
-                            .map(|(k, v)| {
-                                let span_id_for_attr = s
-                                    .span_id_hex()
-                                    .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-                                Ok(WriteableSpanAttribute {
-                                    span_id: span_id_for_attr,
+                            let attributes: Vec<WriteableSpanAttribute> = span
+                                .attributes_map()
+                                .into_iter()
+                                .map(|(k, v)| WriteableSpanAttribute {
+                                    span_id: span_id.clone(),
                                     key: k,
                                     value: v,
                                 })
-                            })
-                            .collect();
+                                .collect();
 
-                        Ok((span, attrs?))
+                            Ok((writeable_span, attributes))
+                        })
                     })
-                })
-        })
-        .collect();
+            })
+            .collect();
 
     let spans_and_attrs = spans_and_attrs?;
 

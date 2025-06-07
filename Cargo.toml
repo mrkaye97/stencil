@@ -26,3 +26,10 @@ bcrypt = "0.17.0"
 rust_decimal_macros = "1.32"
 async-trait = "0.1.88"
 axum-extra = { version = "0.10.1", features = ["typed-header"] }
+opentelemetry-proto = { version = "0.4", features = [
+    "gen-tonic-messages",
+    "trace",
+] }
+tonic = "0.10"
+prost = "0.11.9"
+hex = "0.4.3"
