@@ -61,17 +61,17 @@ pub struct WriteableSpanAttribute {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WriteableLog {
-    log_id: uuid::Uuid,
-    trace_id: Option<String>,
-    span_id: Option<String>,
+    pub log_id: uuid::Uuid,
+    pub trace_id: Option<String>,
+    pub span_id: Option<String>,
     #[serde(with = "time::serde::rfc3339")]
-    timestamp: OffsetDateTime,
-    observed_timestamp: Option<OffsetDateTime>,
-    severity_number: i32,
-    severity_text: Option<String>,
-    body: Option<String>,
-    instrumentation_library: Option<String>,
-    service_name: Option<String>,
+    pub timestamp: OffsetDateTime,
+    pub observed_timestamp: Option<OffsetDateTime>,
+    pub severity_number: i32,
+    pub severity_text: Option<String>,
+    pub body: Option<String>,
+    pub instrumentation_library: Option<String>,
+    pub service_name: Option<String>,
 }
 
 #[derive(Clone, Debug)]

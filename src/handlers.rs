@@ -20,7 +20,7 @@ pub use crud::{
 };
 use time::OffsetDateTime;
 
-use crate::handlers::crud::{WriteableSpan, WriteableTrace};
+use crate::handlers::crud::{WriteableLog, WriteableSpan, WriteableTrace};
 
 pub async fn insert_traces_handler(
     State(pool): State<Arc<PgPool>>,
@@ -218,6 +218,50 @@ pub async fn list_spans_handler(
     Ok(Json(spans))
 }
 
+pub async fn list_logs_handler(
+    State(pool): State<Arc<PgPool>>,
+) -> Result<Json<Vec<WriteableLog>>, StatusCode> {
+    let records = sqlx::query!(
+        r#"
+        SELECT
+            id,
+            trace_id,
+            span_id,
+            timestamp,
+            observed_timestamp,
+            severity_number,
+            severity_text,
+            body,
+            instrumentation_library,
+            service_name
+        FROM log
+        ORDER BY timestamp DESC
+        LIMIT 100
+        "#
+    )
+    .fetch_all(&*pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let logs: Vec<WriteableLog> = records
+        .into_iter()
+        .map(|record| WriteableLog {
+            log_id: record.id,
+            trace_id: record.trace_id,
+            span_id: record.span_id,
+            timestamp: record.timestamp,
+            observed_timestamp: record.observed_timestamp,
+            severity_number: record.severity_number,
+            severity_text: record.severity_text,
+            body: record.body,
+            instrumentation_library: record.instrumentation_library,
+            service_name: record.service_name,
+        })
+        .collect();
+
+    Ok(Json(logs))
+}
+
 async fn health_check() -> &'static str {
     "OK"
 }
@@ -236,5 +280,6 @@ pub fn create_api_router(pool: Arc<PgPool>) -> Router {
         .route("/traces", get(list_traces_handler))
         .route("/traces/{trace_id}", get(get_trace_handler))
         .route("/spans", get(list_spans_handler))
+        .route("/logs", get(list_logs_handler))
         .with_state(pool)
 }
