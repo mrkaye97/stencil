@@ -5,7 +5,7 @@ use tower_http::cors::CorsLayer;
 use tracing_subscriber;
 
 mod handlers;
-use handlers::create_router;
+use handlers::{create_api_router, create_otel_router};
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error> {
@@ -15,26 +15,36 @@ async fn main() -> Result<(), sqlx::Error> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let pool = PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(10)
         .connect(&database_url)
         .await?;
 
     sqlx::migrate!("./migrations").run(&pool).await?;
 
-    let router = create_router(Arc::new(pool));
+    let pool = Arc::new(pool);
 
-    let app = router.layer(CorsLayer::permissive());
+    let otel_router = create_otel_router(pool.clone());
+    let api_router = create_api_router(pool.clone()).layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 4317));
-    let listener = TcpListener::bind(addr).await.unwrap();
+    let otel_addr = SocketAddr::from(([0, 0, 0, 0], 4317));
+    let otel_listener = TcpListener::bind(otel_addr).await.unwrap();
 
-    tracing::info!("Listening on {}", addr);
+    let api_addr = SocketAddr::from(([0, 0, 0, 0], 8000));
+    let api_listener = TcpListener::bind(api_addr).await.unwrap();
 
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<SocketAddr>(),
+    tracing::info!("OpenTelemetry server listening on {}", otel_addr);
+    tracing::info!("API server listening on {}", api_addr);
+
+    tokio::try_join!(
+        axum::serve(
+            otel_listener,
+            otel_router.into_make_service_with_connect_info::<SocketAddr>(),
+        ),
+        axum::serve(
+            api_listener,
+            api_router.into_make_service_with_connect_info::<SocketAddr>(),
+        )
     )
-    .await
     .unwrap();
 
     Ok(())

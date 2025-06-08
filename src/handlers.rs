@@ -135,11 +135,17 @@ async fn health_check() -> &'static str {
     "OK"
 }
 
-pub fn create_router(pool: Arc<PgPool>) -> Router {
+pub fn create_otel_router(pool: Arc<PgPool>) -> Router {
     Router::new()
         .route("/health", get(health_check))
         .route("/v1/traces", post(insert_traces_handler))
         .route("/v1/logs", post(insert_logs_handler))
+        .with_state(pool)
+}
+
+pub fn create_api_router(pool: Arc<PgPool>) -> Router {
+    Router::new()
+        .route("/health", get(health_check))
         .route("/api/traces", get(list_traces_handler))
         .with_state(pool)
 }
