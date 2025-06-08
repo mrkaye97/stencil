@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "time"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "time", "runtime-tokio-rustls", "uuid"] }
 axum = "0.8"
 tokio = { version = "1.24.2", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
@@ -26,10 +26,7 @@ bcrypt = "0.17.0"
 rust_decimal_macros = "1.32"
 async-trait = "0.1.88"
 axum-extra = { version = "0.10.1", features = ["typed-header"] }
-opentelemetry-proto = { version = "0.4", features = [
-    "gen-tonic-messages",
-    "trace",
-] }
+opentelemetry-proto = { version = "0.4", features = ["gen-tonic-messages", "logs", "trace"] }
 tonic = "0.10"
 prost = "0.11.9"
 hex = "0.4.3"

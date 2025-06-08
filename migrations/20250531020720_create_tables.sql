@@ -44,3 +44,29 @@ CREATE TABLE span_attribute (
     value TEXT NOT NULL,
     PRIMARY KEY (span_id, key)
 );
+
+-- Logs
+CREATE TABLE log (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    trace_id VARCHAR(32) REFERENCES trace(id) ON DELETE CASCADE,
+    span_id VARCHAR(16) REFERENCES span(id) ON DELETE CASCADE,
+    timestamp TIMESTAMPTZ NOT NULL,
+    observed_timestamp TIMESTAMPTZ,
+    severity_number INTEGER NOT NULL DEFAULT 0,
+    severity_text TEXT,
+    body TEXT,
+    instrumentation_library TEXT,
+    service_name TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE log_attribute (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    log_id UUID NOT NULL REFERENCES log(id) ON DELETE CASCADE,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_log_trace_id_span_id ON log(trace_id, span_id);
+CREATE INDEX idx_log_timestamp ON log(timestamp);
