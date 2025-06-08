@@ -25,7 +25,7 @@ async fn main() -> Result<(), sqlx::Error> {
 
     let app = router.layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 4318));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 4317));
     let listener = TcpListener::bind(addr).await.unwrap();
 
     tracing::info!("Listening on {}", addr);
