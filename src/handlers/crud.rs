@@ -66,6 +66,7 @@ pub struct WriteableLog {
     pub span_id: Option<String>,
     #[serde(with = "time::serde::rfc3339")]
     pub timestamp: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339::option")]
     pub observed_timestamp: Option<OffsetDateTime>,
     pub severity_number: i32,
     pub severity_text: Option<String>,

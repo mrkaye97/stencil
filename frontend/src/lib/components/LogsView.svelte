@@ -182,7 +182,7 @@
 							<div class="min-w-0 flex-1">
 								<div class="mb-2 flex items-center gap-3">
 									<span class="font-mono text-sm text-gray-500">
-										{formatTimestamp(log.timestamp)}
+										{formatTimestamp(log.observed_timestamp)}
 									</span>
 									{#if log.severity_text}
 										<span
@@ -256,6 +256,7 @@
 							</div>
 
 							<Button
+								variant="ghost"
 								onclick={() => toggleExpanded(log.log_id)}
 								class="ml-4 p-1 text-gray-400 transition-colors hover:text-gray-600"
 								title={expandedLogs.has(log.log_id) ? 'Collapse' : 'Expand'}
