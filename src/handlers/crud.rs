@@ -1,4 +1,5 @@
 use rust_decimal::prelude::ToPrimitive;
+use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, QueryBuilder};
 use std::collections::HashMap;
 use time::OffsetDateTime;
@@ -38,12 +39,15 @@ pub struct WriteableSpan {
     service_name: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WriteableTrace {
-    trace_id: String,
-    start_time: OffsetDateTime,
-    end_time: OffsetDateTime,
-    duration_ns: Option<i64>,
-    span_count: i32,
+    pub trace_id: String,
+    #[serde(with = "time::serde::rfc3339")]
+    pub start_time: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub end_time: OffsetDateTime,
+    pub duration_ns: Option<i64>,
+    pub span_count: i32,
 }
 
 #[derive(Clone, Debug)]

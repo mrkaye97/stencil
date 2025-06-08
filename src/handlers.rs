@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
 use prost::Message;
@@ -18,6 +18,9 @@ pub use crud::{
     flatten_logs_and_attrs, flatten_spans_and_attrs, insert_log_attributes, insert_logs,
     insert_span_attributes, insert_spans, insert_traces,
 };
+use time::OffsetDateTime;
+
+use crate::handlers::crud::WriteableTrace;
 
 pub async fn insert_traces_handler(
     State(pool): State<Arc<PgPool>>,
@@ -92,14 +95,51 @@ pub async fn insert_logs_handler(
     Ok(Json(json!({ "status": "success" })))
 }
 
+pub async fn list_traces_handler(
+    State(pool): State<Arc<PgPool>>,
+) -> Result<Json<Vec<WriteableTrace>>, StatusCode> {
+    let records = sqlx::query!(
+        r#"
+        SELECT
+            id,
+            started_at,
+            ended_at,
+            duration_ns,
+            span_count
+        FROM trace
+        ORDER BY started_at DESC
+        LIMIT 100
+        "#
+    )
+    .fetch_all(&*pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let traces: Vec<WriteableTrace> = records
+        .into_iter()
+        .map(|record| WriteableTrace {
+            trace_id: record.id,
+            start_time: record
+                .started_at
+                .unwrap_or_else(|| OffsetDateTime::now_utc()),
+            end_time: record.ended_at.unwrap_or_else(|| OffsetDateTime::now_utc()),
+            duration_ns: record.duration_ns,
+            span_count: record.span_count,
+        })
+        .collect();
+
+    Ok(Json(traces))
+}
+
 async fn health_check() -> &'static str {
     "OK"
 }
 
 pub fn create_router(pool: Arc<PgPool>) -> Router {
     Router::new()
-        .route("/health", axum::routing::get(health_check))
+        .route("/health", get(health_check))
         .route("/v1/traces", post(insert_traces_handler))
         .route("/v1/logs", post(insert_logs_handler))
+        .route("/api/traces", get(list_traces_handler))
         .with_state(pool)
 }
