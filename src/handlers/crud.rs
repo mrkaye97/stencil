@@ -12,7 +12,7 @@ use opentelemetry_proto::tonic::logs::v1::LogRecord;
 use opentelemetry_proto::tonic::resource::v1::Resource;
 use opentelemetry_proto::tonic::trace::v1::{ScopeSpans, Span};
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Serialize, Deserialize)]
 #[sqlx(type_name = "span_kind", rename_all = "UPPERCASE")]
 pub enum DbSpanKind {
     Unspecified = 0,
@@ -23,20 +23,22 @@ pub enum DbSpanKind {
     Consumer = 5,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WriteableSpan {
-    span_id: String,
-    trace_id: String,
-    parent_span_id: Option<String>,
-    operation_name: String,
-    start_time: OffsetDateTime,
-    end_time: OffsetDateTime,
-    duration_ns: i64,
-    status_code: i32,
-    status_message: Option<String>,
-    span_kind: DbSpanKind,
-    instrumentation_library: Option<String>,
-    service_name: Option<String>,
+    pub span_id: String,
+    pub trace_id: String,
+    pub parent_span_id: Option<String>,
+    pub operation_name: String,
+    #[serde(with = "time::serde::rfc3339")]
+    pub start_time: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub end_time: OffsetDateTime,
+    pub duration_ns: i64,
+    pub status_code: i32,
+    pub status_message: Option<String>,
+    pub span_kind: DbSpanKind,
+    pub instrumentation_library: Option<String>,
+    pub service_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -57,11 +59,12 @@ pub struct WriteableSpanAttribute {
     value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WriteableLog {
     log_id: uuid::Uuid,
     trace_id: Option<String>,
     span_id: Option<String>,
+    #[serde(with = "time::serde::rfc3339")]
     timestamp: OffsetDateTime,
     observed_timestamp: Option<OffsetDateTime>,
     severity_number: i32,

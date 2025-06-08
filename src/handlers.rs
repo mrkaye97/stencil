@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::body::Bytes;
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -20,7 +20,7 @@ pub use crud::{
 };
 use time::OffsetDateTime;
 
-use crate::handlers::crud::WriteableTrace;
+use crate::handlers::crud::{WriteableSpan, WriteableTrace};
 
 pub async fn insert_traces_handler(
     State(pool): State<Arc<PgPool>>,
@@ -131,6 +131,93 @@ pub async fn list_traces_handler(
     Ok(Json(traces))
 }
 
+pub async fn get_trace_handler(
+    State(pool): State<Arc<PgPool>>,
+    Path(trace_id): axum::extract::Path<String>,
+) -> Result<Json<WriteableTrace>, StatusCode> {
+    let maybe_record = sqlx::query!(
+        r#"
+        SELECT
+            id,
+            started_at,
+            ended_at,
+            duration_ns,
+            span_count
+        FROM trace
+        WHERE id = $1
+        "#,
+        trace_id
+    )
+    .fetch_optional(&*pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if maybe_record.is_none() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    let record = maybe_record.unwrap();
+
+    let trace = WriteableTrace {
+        trace_id: record.id,
+        start_time: record
+            .started_at
+            .unwrap_or_else(|| OffsetDateTime::now_utc()),
+        end_time: record.ended_at.unwrap_or_else(|| OffsetDateTime::now_utc()),
+        duration_ns: record.duration_ns,
+        span_count: record.span_count,
+    };
+
+    Ok(Json(trace))
+}
+
+pub async fn list_spans_handler(
+    State(pool): State<Arc<PgPool>>,
+) -> Result<Json<Vec<WriteableSpan>>, StatusCode> {
+    let records = sqlx::query!(
+        r#"
+        SELECT
+            id,
+            trace_id,
+            parent_span_id,
+            operation_name,
+            started_at,
+            ended_at,
+            duration_ns,
+            status_code,
+            status_message,
+            service_name,
+            instrumentation_library
+        FROM span
+        ORDER BY started_at DESC
+        LIMIT 100
+        "#
+    )
+    .fetch_all(&*pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let spans: Vec<WriteableSpan> = records
+        .into_iter()
+        .map(|record| WriteableSpan {
+            span_id: record.id,
+            trace_id: record.trace_id,
+            parent_span_id: record.parent_span_id,
+            operation_name: record.operation_name,
+            start_time: record.started_at,
+            end_time: record.ended_at,
+            duration_ns: record.duration_ns,
+            status_code: record.status_code,
+            status_message: record.status_message,
+            span_kind: crud::DbSpanKind::Unspecified,
+            instrumentation_library: record.instrumentation_library,
+            service_name: record.service_name,
+        })
+        .collect();
+
+    Ok(Json(spans))
+}
+
 async fn health_check() -> &'static str {
     "OK"
 }
@@ -147,5 +234,7 @@ pub fn create_api_router(pool: Arc<PgPool>) -> Router {
     Router::new()
         .route("/health", get(health_check))
         .route("/traces", get(list_traces_handler))
+        .route("/traces/{trace_id}", get(get_trace_handler))
+        .route("/spans", get(list_spans_handler))
         .with_state(pool)
 }
