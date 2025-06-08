@@ -182,7 +182,7 @@
 							<div class="min-w-0 flex-1">
 								<div class="mb-2 flex items-center gap-3">
 									<span class="font-mono text-sm text-gray-500">
-										{formatTimestamp(log.observed_timestamp)}
+										{formatTimestamp(log.observed_timestamp ?? log.timestamp)}
 									</span>
 									{#if log.severity_text}
 										<span
