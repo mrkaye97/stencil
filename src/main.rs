@@ -13,6 +13,10 @@ async fn main() -> Result<(), sqlx::Error> {
 
     let _ = dotenvy::dotenv();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let http_port = std::env::var("HTTP_PORT")
+        .expect("HTTP_PORT must be set")
+        .parse::<u16>()
+        .expect("HTTP_PORT must be a valid number");
 
     let pool = PgPoolOptions::new()
         .max_connections(10)
@@ -29,7 +33,7 @@ async fn main() -> Result<(), sqlx::Error> {
     let otel_addr = SocketAddr::from(([0, 0, 0, 0], 4317));
     let otel_listener = TcpListener::bind(otel_addr).await.unwrap();
 
-    let api_addr = SocketAddr::from(([0, 0, 0, 0], 8000));
+    let api_addr = SocketAddr::from(([0, 0, 0, 0], http_port));
     let api_listener = TcpListener::bind(api_addr).await.unwrap();
 
     tracing::info!("OpenTelemetry server listening on {}", otel_addr);
