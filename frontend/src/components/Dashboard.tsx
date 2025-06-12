@@ -30,82 +30,76 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-400 mt-2">
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
           Overview of your observability data
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-200">
-              Total Traces
-            </CardTitle>
-            <Network className="h-4 w-4 text-blue-400" />
+            <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
+            <Network className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {stats.totalTraces}
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               {tracesLoading ? "Loading..." : "Distributed traces"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-200">
-              Total Logs
-            </CardTitle>
-            <Database className="h-4 w-4 text-green-400" />
+            <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
+            <Database className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {stats.totalLogs}
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               {logsLoading ? "Loading..." : "Log entries"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-200">
-              Total Spans
-            </CardTitle>
-            <Activity className="h-4 w-4 text-purple-400" />
+            <CardTitle className="text-sm font-medium">Total Spans</CardTitle>
+            <Activity className="h-4 w-4 text-chart-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {stats.totalSpans}
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               {spansLoading ? "Loading..." : "Span operations"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-200">
-              Avg Duration
-            </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-400" />
+            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
+            <Clock className="h-4 w-4 text-chart-5" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {stats.avgTraceDuration}ms
             </div>
-            <p className="text-xs text-gray-400">Average trace duration</p>
+            <p className="text-xs text-muted-foreground">
+              Average trace duration
+            </p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-gray-200">Recent Traces</CardTitle>
@@ -129,7 +123,7 @@ export default function Dashboard() {
                 {recentTraces.map((trace) => (
                   <div
                     key={trace.trace_id}
-                    className="flex items-center justify-between p-3 bg-gray-800 rounded-lg"
+                    className="flex items-center justify-between p-3  rounded-lg"
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-white truncate">
@@ -161,7 +155,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-gray-200">Recent Logs</CardTitle>
@@ -183,7 +177,7 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-3">
                 {recentLogs.map((log) => (
-                  <div key={log.log_id} className="p-3 bg-gray-800 rounded-lg">
+                  <div key={log.log_id} className="p-3rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <Badge
                         variant={

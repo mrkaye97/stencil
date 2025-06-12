@@ -10,6 +10,9 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
+  Copy,
+  Check,
+  Calendar,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
@@ -82,22 +85,17 @@ export default function TraceDetailPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="border-gray-700 text-gray-300"
-          >
+          <Button asChild variant="outline" size="sm">
             <Link to="/traces">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Traces
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold text-white">Trace Details</h1>
+          <h1 className="text-3xl font-bold text-foreground">Trace Details</h1>
         </div>
-        <Card className="bg-red-950 border-red-800">
+        <Card className="bg-destructive/10 border-destructive/20">
           <CardContent className="pt-6">
-            <p className="text-red-200">
+            <p className="text-destructive">
               Error loading trace: {traceError?.message || spansError?.message}
             </p>
           </CardContent>
@@ -110,20 +108,15 @@ export default function TraceDetailPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="border-gray-700 text-gray-300"
-          >
+          <Button asChild variant="outline" size="sm">
             <Link to="/traces">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Traces
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold text-white">Trace Details</h1>
+          <h1 className="text-3xl font-bold text-foreground">Trace Details</h1>
         </div>
-        <div className="text-gray-400">Loading trace details...</div>
+        <div className="text-muted-foreground">Loading trace details...</div>
       </div>
     );
   }
@@ -132,22 +125,17 @@ export default function TraceDetailPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="border-gray-700 text-gray-300"
-          >
+          <Button asChild variant="outline" size="sm">
             <Link to="/traces">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Traces
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold text-white">Trace Details</h1>
+          <h1 className="text-3xl font-bold text-foreground">Trace Details</h1>
         </div>
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardContent className="pt-6">
-            <p className="text-gray-400">Trace not found</p>
+            <p className="text-muted-foreground">Trace not found</p>
           </CardContent>
         </Card>
       </div>
@@ -164,97 +152,98 @@ export default function TraceDetailPage() {
   return (
     <div className="h-full flex flex-col space-y-6">
       <div className="flex items-center gap-4">
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="border-gray-700 text-gray-300"
-        >
+        <Button asChild variant="outline" size="sm">
           <Link to="/traces">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Traces
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-white">Trace Details</h1>
-          <p className="text-gray-400 mt-1 font-mono text-sm">
+          <h1 className="text-3xl font-bold text-foreground">Trace Details</h1>
+          <p className="text-muted-foreground mt-1 font-mono text-sm">
             ID: {trace.trace_id}
           </p>
         </div>
       </div>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-gray-200">Trace Overview</CardTitle>
+          <CardTitle>Trace Overview</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Layers className="h-4 w-4 text-blue-400" />
-                <span className="text-sm font-medium text-gray-200">Spans</span>
+                <Layers className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  Spans
+                </span>
               </div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-foreground">
                 {trace.span_count}
               </p>
             </div>
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Activity className="h-4 w-4 text-green-400" />
-                <span className="text-sm font-medium text-gray-200">
+                <Clock className="h-4 w-4 text-accent" />
+                <span className="text-sm font-medium text-foreground">
                   Duration
                 </span>
               </div>
-              <p className="text-2xl font-bold text-white">
-                {duration ? `${duration}ms` : "N/A"}
+              <p className="text-2xl font-bold text-foreground">
+                {duration ? `${duration}ms` : "Unknown"}
               </p>
             </div>
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-purple-400" />
-                <span className="text-sm font-medium text-gray-200">
+                <Clock className="h-4 w-4 text-chart-3" />
+                <span className="text-sm font-medium text-foreground">
                   Started
                 </span>
               </div>
-              <p className="text-lg font-medium text-white">{timeAgo}</p>
+              <p className="text-lg font-medium text-foreground">{timeAgo}</p>
             </div>
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-yellow-400" />
-                <span className="text-sm font-medium text-gray-200">
+                <Activity className="h-4 w-4 text-chart-4" />
+                <span className="text-sm font-medium text-foreground">
                   Status
                 </span>
               </div>
               <Badge
-                variant="secondary"
-                className="bg-green-800 text-green-200"
+                variant={
+                  duration && duration > 5000
+                    ? "error"
+                    : duration && duration > 1000
+                      ? "warning"
+                      : "success"
+                }
               >
-                Complete
+                {duration && duration > 5000
+                  ? "Slow"
+                  : duration && duration > 1000
+                    ? "Warning"
+                    : "Good"}
               </Badge>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-900 border-gray-800 flex-1 min-h-0">
+      <Card className="flex-1 min-h-0">
         <CardHeader>
-          <CardTitle className="text-gray-200">Trace Waterfall</CardTitle>
+          <CardTitle>Trace Waterfall</CardTitle>
         </CardHeader>
         <CardContent className="h-full pb-6">
-          {!spans || spans.length === 0 ? (
-            <div className="text-gray-400 text-center py-8">
-              No spans found for this trace
-            </div>
-          ) : (
-            <div className="h-full overflow-y-auto space-y-1">
-              {spanTree.map((node) => (
+          <div className="h-full overflow-y-auto">
+            {spanTree &&
+              spanTree.map((node) => (
                 <SpanTreeView key={node.span.span_id} node={node} />
               ))}
-            </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -262,88 +251,81 @@ export default function TraceDetailPage() {
 }
 
 function SpanTreeView({ node }: { node: SpanTreeNode }) {
-  const [isOpen, setIsOpen] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
-  const hasChildren = node.children.length > 0;
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const duration = Math.round(node.span.duration_ns / 1000000);
-  const statusColor =
-    node.span.status_code === 1
-      ? "text-green-400 bg-green-900"
-      : node.span.status_code === 2
-        ? "text-red-400 bg-red-900"
-        : "text-gray-400 bg-gray-700";
+  const copyToClipboard = async (text: string, id: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-  const barWidth = Math.max(node.endOffset - node.startOffset, 1);
-  const depthIndent = node.depth * 20;
+  const depthColor =
+    node.depth === 0
+      ? "text-primary border-primary/20"
+      : node.depth === 1
+        ? "text-accent border-accent/20"
+        : node.depth === 2
+          ? "text-chart-3 border-chart-3/20"
+          : "text-muted-foreground border-border";
 
   return (
-    <div>
+    <div className="mb-2">
       <div
-        className="group relative p-2 hover:bg-gray-800 rounded-lg cursor-pointer"
+        className="group relative p-2 hover:bg-accent/10 rounded-lg cursor-pointer"
         onClick={() => setShowDetails(!showDetails)}
       >
-        <div className="relative h-8 mb-2">
-          <div
-            className="absolute top-1 h-6 rounded flex items-center px-2 text-xs font-medium"
-            style={{
-              left: `calc(${node.startOffset}% + ${depthIndent}px)`,
-              width: `${barWidth}%`,
-              backgroundColor:
-                node.span.status_code === 2
-                  ? "#7f1d1d"
-                  : node.span.status_code === 1
-                    ? "#14532d"
-                    : "#374151",
-              border: `1px solid ${
-                node.span.status_code === 2
-                  ? "#ef4444"
-                  : node.span.status_code === 1
-                    ? "#22c55e"
-                    : "#6b7280"
-              }`,
-              minWidth: "80px",
-            }}
-          >
-            <span className="truncate text-white">
-              {node.span.operation_name}
-            </span>
-          </div>
-        </div>
+        <div
+          className={`absolute left-0 top-0 bottom-0 w-1 rounded-r ${depthColor.split(" ")[1]}`}
+          style={{ marginLeft: `${node.depth * 20}px` }}
+        />
 
-        {/* Span details */}
-        <div className="flex items-center justify-between">
-          <div
-            className="flex items-center gap-2"
-            style={{ marginLeft: `${depthIndent}px` }}
-          >
-            {hasChildren && (
+        <div
+          className="flex items-center justify-between"
+          style={{ marginLeft: `${node.depth * 20 + 8}px` }}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1">
+              <h4 className={`text-sm font-medium ${depthColor.split(" ")[0]}`}>
+                {node.span.operation_name}
+              </h4>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 text-gray-400 hover:text-white"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsOpen(!isOpen);
+                  copyToClipboard(node.span.span_id, node.span.span_id);
                 }}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               >
-                {isOpen ? (
-                  <ChevronDown className="h-4 w-4" />
+                {copiedId === node.span.span_id ? (
+                  <Check className="h-3 w-3" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <Copy className="h-3 w-3" />
                 )}
               </Button>
-            )}
-            <span className="text-sm font-medium text-white">
-              {node.span.operation_name}
-            </span>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="font-mono">{node.span.span_id.slice(0, 8)}</span>
+              <span className="text-sm font-medium text-foreground">
+                {node.span.service_name || "Unknown Service"}
+              </span>
+              {node.span.duration_ns && (
+                <span>{Math.round(node.span.duration_ns / 1000000)}ms</span>
+              )}
+            </div>
+
             <Badge
-              variant="outline"
-              className="border-gray-600 text-gray-300 text-xs"
+              variant={
+                node.span.status_code === 1
+                  ? "success"
+                  : node.span.status_code === 2
+                    ? "error"
+                    : "outline"
+              }
+              className="mt-1"
             >
-              {duration}ms
-            </Badge>
-            <Badge className={`text-xs ${statusColor}`}>
               {node.span.status_code === 1
                 ? "OK"
                 : node.span.status_code === 2
@@ -355,73 +337,66 @@ function SpanTreeView({ node }: { node: SpanTreeNode }) {
 
         {/* Expanded details */}
         {showDetails && (
-          <div className="mt-3 p-3 bg-gray-800 rounded border border-gray-700">
+          <div className="mt-3 p-3 bg-card/50 rounded border border-border">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <div className="text-gray-400 font-medium mb-1">
+                <div className="text-muted-foreground font-medium mb-1">
                   Span Details
                 </div>
-                <div className="space-y-1 text-gray-300">
+                <div className="space-y-1 text-foreground">
                   <div>
-                    <span className="text-gray-500">ID:</span>{" "}
+                    <span className="text-muted-foreground">ID:</span>{" "}
                     <code className="text-xs">{node.span.span_id}</code>
                   </div>
                   <div>
-                    <span className="text-gray-500">Parent:</span>{" "}
+                    <span className="text-muted-foreground">Parent:</span>{" "}
                     <code className="text-xs">
                       {node.span.parent_span_id || "None"}
                     </code>
                   </div>
                   <div>
-                    <span className="text-gray-500">Service:</span>{" "}
+                    <span className="text-muted-foreground">Service:</span>{" "}
                     {node.span.service_name || "Unknown"}
                   </div>
                   <div>
-                    <span className="text-gray-500">Library:</span>{" "}
-                    {node.span.instrumentation_library || "Unknown"}
+                    <span className="text-muted-foreground">Kind:</span>{" "}
+                    {node.span.span_kind || "Unknown"}
                   </div>
                 </div>
               </div>
+
               <div>
-                <div className="text-gray-400 font-medium mb-1">Timing</div>
-                <div className="space-y-1 text-gray-300">
+                <div className="text-muted-foreground font-medium mb-1">
+                  Timing
+                </div>
+                <div className="space-y-1 text-foreground">
                   <div>
-                    <span className="text-gray-500">Start:</span>{" "}
-                    {new Date(node.span.start_time).toISOString()}
+                    <span className="text-muted-foreground">Started:</span>{" "}
+                    {new Date(node.span.start_time).toLocaleString()}
                   </div>
                   <div>
-                    <span className="text-gray-500">End:</span>{" "}
-                    {new Date(node.span.end_time).toISOString()}
+                    <span className="text-muted-foreground">Ended:</span>{" "}
+                    {new Date(node.span.end_time).toLocaleString()}
                   </div>
-                  <div>
-                    <span className="text-gray-500">Duration:</span> {duration}
-                    ms
-                  </div>
+                  {node.span.duration_ns && (
+                    <div>
+                      <span className="text-muted-foreground">Duration:</span>{" "}
+                      {Math.round(node.span.duration_ns / 1000000)}ms
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-            {node.span.status_message && (
-              <div className="mt-3 pt-3 border-t border-gray-700">
-                <div className="text-gray-400 font-medium mb-1">
-                  Status Message
-                </div>
-                <div className="text-gray-300 text-sm">
-                  {node.span.status_message}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
 
-      {/* Child spans */}
-      {hasChildren && isOpen && (
-        <div className="space-y-1">
-          {node.children.map((child) => (
-            <SpanTreeView key={child.span.span_id} node={child} />
-          ))}
-        </div>
-      )}
+      {/* Render children */}
+      <div className="ml-4">
+        {node.children.map((child) => (
+          <SpanTreeView key={child.span.span_id} node={child} />
+        ))}
+      </div>
     </div>
   );
 }

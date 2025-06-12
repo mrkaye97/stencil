@@ -29,12 +29,14 @@ export default function Layout() {
   const location = useLocation();
 
   return (
-    <div className="h-screen bg-gray-950 text-gray-100 flex overflow-hidden">
-      <div className="w-64 bg-gray-900 border-r border-gray-800 flex-shrink-0">
+    <div className="h-screen bg-background text-foreground flex overflow-hidden">
+      <div className="w-64 bg-sidebar border-r border-sidebar-border flex-shrink-0">
         <div className="p-6">
           <div className="flex items-center gap-2 mb-8">
-            <GitBranch className="h-8 w-8 text-blue-400" />
-            <h1 className="text-xl font-bold text-white">Stencil</h1>
+            <GitBranch className="h-8 w-8 text-sidebar-primary" />
+            <h1 className="text-xl font-bold text-sidebar-foreground">
+              Stencil
+            </h1>
           </div>
 
           <nav className="space-y-2">
@@ -49,8 +51,8 @@ export default function Layout() {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:text-white hover:bg-gray-800"
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent"
                   )}
                 >
                   <Icon className="h-4 w-4" />

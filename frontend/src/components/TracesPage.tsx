@@ -21,10 +21,10 @@ export default function TracesPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-white">Traces</h1>
-        <Card className="bg-red-950 border-red-800">
+        <h1 className="text-3xl font-bold text-foreground">Traces</h1>
+        <Card className="bg-destructive/10 border-destructive/20">
           <CardContent className="pt-6">
-            <p className="text-red-200">
+            <p className="text-destructive">
               Error loading traces: {error.message}
             </p>
           </CardContent>
@@ -37,42 +37,40 @@ export default function TracesPage() {
     <div className="h-full flex flex-col space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Traces</h1>
-          <p className="text-gray-400 mt-2">
+          <h1 className="text-3xl font-bold text-foreground">Traces</h1>
+          <p className="text-muted-foreground mt-2">
             Distributed traces across your services
           </p>
         </div>
-        <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-          {filteredTraces.length} traces
-        </Badge>
+        <Badge variant="secondary">{filteredTraces.length} traces</Badge>
       </div>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card>
         <CardContent className="pt-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search traces by ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+              className="pl-10"
             />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-900 border-gray-800 flex-1 min-h-0">
+      <Card className="flex-1 min-h-0">
         <CardHeader>
-          <CardTitle className="text-gray-200">All Traces</CardTitle>
+          <CardTitle>All Traces</CardTitle>
         </CardHeader>
         <CardContent className="h-full pb-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-400">Loading traces...</div>
+              <div className="text-muted-foreground">Loading traces...</div>
             </div>
           ) : filteredTraces.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-400">
+              <div className="text-muted-foreground">
                 {searchTerm ? "No traces match your search" : "No traces found"}
               </div>
             </div>
@@ -98,30 +96,32 @@ function TraceCard({ trace }: { trace: Trace }) {
   });
 
   const getStatusInfo = () => {
-    if (!duration) return { color: "bg-gray-600", label: "Unknown" };
-    if (duration > 5000) return { color: "bg-red-600", label: "Slow" };
-    if (duration > 1000) return { color: "bg-yellow-600", label: "Warning" };
-    return { color: "bg-green-600", label: "Good" };
+    if (!duration) return { variant: "outline" as const, label: "Unknown" };
+    if (duration > 5000) return { variant: "error" as const, label: "Slow" };
+    if (duration > 1000)
+      return { variant: "warning" as const, label: "Warning" };
+    return { variant: "success" as const, label: "Good" };
   };
 
   const status = getStatusInfo();
 
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors border border-gray-700 hover:border-gray-600">
+    <div className="flex items-center justify-between p-4 bg-card rounded-lg hover:bg-card/80 transition-colors border border-border hover:border-border/80">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-3">
-          <h3 className="text-sm font-medium text-white truncate font-mono">
+          <h3 className="text-sm font-medium text-foreground truncate font-mono">
             {trace.trace_id}
           </h3>
-          <Badge variant="outline" className="border-gray-600 text-gray-300">
+          <Badge
+            variant="outline"
+            className="border-border text-muted-foreground"
+          >
             {trace.span_count} spans
           </Badge>
-          <Badge className={`${status.color} text-white text-xs`}>
-            {status.label}
-          </Badge>
+          <Badge variant={status.variant}>{status.label}</Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-400">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             <span>Started {timeAgo}</span>
@@ -132,7 +132,7 @@ function TraceCard({ trace }: { trace: Trace }) {
               <span>{duration}ms duration</span>
             </div>
           )}
-          <div className="text-gray-500">
+          <div className="text-muted-foreground/80">
             {new Date(trace.start_time).toLocaleString()}
           </div>
         </div>
@@ -140,11 +140,7 @@ function TraceCard({ trace }: { trace: Trace }) {
 
       <div className="flex items-center gap-2 ml-4">
         <Link to="/trace/$traceId" params={{ traceId: trace.trace_id }}>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-gray-700 text-gray-300 hover:bg-gray-700"
-          >
+          <Button variant="outline" size="sm">
             <ExternalLink className="h-3 w-3 mr-1" />
             View Details
           </Button>

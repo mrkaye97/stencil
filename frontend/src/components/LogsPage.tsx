@@ -180,7 +180,7 @@ function LogEntry({ log }: { log: Log }) {
     <Collapsible
       open={isExpanded}
       onOpenChange={setIsExpanded}
-      className="bg-gray-800 rounded border border-gray-700 hover:border-gray-600 transition-colors"
+      className="rounded border border-gray-700 hover:border-gray-600 transition-colors"
     >
       <CollapsibleTrigger className="w-full p-3 text-left hover:bg-gray-750">
         <div className="flex items-center gap-3">

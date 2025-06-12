@@ -72,8 +72,8 @@ export default function GraphsPage() {
   if (tracesLoading || spansLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-white">Graphs</h1>
-        <div className="text-gray-400">Loading chart data...</div>
+        <h1 className="text-3xl font-bold text-foreground">Graphs</h1>
+        <div className="text-muted-foreground">Loading chart data...</div>
       </div>
     );
   }
@@ -81,10 +81,12 @@ export default function GraphsPage() {
   if (!chartData) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-white">Graphs</h1>
-        <Card className="bg-gray-900 border-gray-800">
+        <h1 className="text-3xl font-bold text-foreground">Graphs</h1>
+        <Card>
           <CardContent className="pt-6">
-            <p className="text-gray-400">No data available for charts</p>
+            <p className="text-muted-foreground">
+              No data available for charts
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -94,16 +96,18 @@ export default function GraphsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Graphs</h1>
-        <p className="text-gray-400 mt-2">Visualize your observability data</p>
+        <h1 className="text-3xl font-bold text-foreground">Graphs</h1>
+        <p className="text-muted-foreground mt-2">
+          Visualize your observability data
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-400" />
-              <CardTitle className="text-gray-200">Trace Durations</CardTitle>
+              <Clock className="h-5 w-5 text-primary" />
+              <CardTitle>Trace Durations</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -134,13 +138,11 @@ export default function GraphsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800">
+        <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5 text-green-400" />
-              <CardTitle className="text-gray-200">
-                Service Distribution
-              </CardTitle>
+              <PieChartIcon className="h-5 w-5 text-accent" />
+              <CardTitle>Service Distribution</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -173,13 +175,11 @@ export default function GraphsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-400" />
-              <CardTitle className="text-gray-200">
-                Traces Over Time (Last 24 Hours)
-              </CardTitle>
+              <TrendingUp className="h-5 w-5 text-chart-5" />
+              <CardTitle>Traces Over Time (Last 24 Hours)</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -216,21 +216,21 @@ export default function GraphsPage() {
         </Card>
       </div>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-gray-200">Custom Graph Builder</CardTitle>
+          <CardTitle>Custom Graph Builder</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-400 mb-2">
+            <Activity className="h-12 w-12 text-muted-foreground/60 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Coming Soon
             </h3>
-            <p className="text-gray-500 mb-4">
+            <p className="text-muted-foreground/80 mb-4">
               Build custom graphs from your trace data with flexible queries and
               visualizations.
             </p>
-            <Button disabled className="bg-gray-700 text-gray-400">
+            <Button disabled variant="secondary">
               Create Custom Graph
             </Button>
           </div>
