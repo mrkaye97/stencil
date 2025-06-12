@@ -139,17 +139,16 @@ function TraceCard({ trace }: { trace: Trace }) {
       </div>
 
       <div className="flex items-center gap-2 ml-4">
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="border-gray-700 text-gray-300 hover:bg-gray-700"
-        >
-          <Link to="/trace/$traceId" params={{ traceId: trace.trace_id }}>
+        <Link to="/trace/$traceId" params={{ traceId: trace.trace_id }}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-gray-700 text-gray-300 hover:bg-gray-700"
+          >
             <ExternalLink className="h-3 w-3 mr-1" />
             View Details
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
     </div>
   );
