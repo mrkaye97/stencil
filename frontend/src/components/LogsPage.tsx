@@ -74,7 +74,7 @@ export default function LogsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Logs</h1>
@@ -121,11 +121,11 @@ export default function LogsPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800 flex-1 min-h-0">
         <CardHeader>
-          <CardTitle className="text-gray-200">All Logs</CardTitle>
+          <CardTitle className="text-gray-200">Log Stream</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="h-full pb-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-gray-400">Loading logs...</div>
@@ -139,7 +139,7 @@ export default function LogsPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="h-full overflow-y-auto space-y-1">
               {filteredLogs.map((log) => (
                 <LogEntry key={log.log_id} log={log} />
               ))}
@@ -180,63 +180,47 @@ function LogEntry({ log }: { log: Log }) {
     <Collapsible
       open={isExpanded}
       onOpenChange={setIsExpanded}
-      className="bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
+      className="bg-gray-800 rounded border border-gray-700 hover:border-gray-600 transition-colors"
     >
-      <CollapsibleTrigger className="w-full p-4 text-left">
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 pt-1">
+      <CollapsibleTrigger className="w-full p-3 text-left hover:bg-gray-750">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0">
             <Badge
-              className={`${severity.color} text-white flex items-center gap-1`}
+              className={`${severity.color} text-white flex items-center gap-1 text-xs px-2 py-0.5`}
             >
               <SeverityIcon className="h-3 w-3" />
               {log.severity_text || severity.label}
             </Badge>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-gray-400">{timeAgo}</span>
-              {log.service_name && (
-                <>
-                  <span className="text-gray-600">•</span>
-                  <Badge
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 text-xs"
-                  >
-                    {log.service_name}
-                  </Badge>
-                </>
-              )}
-              {log.trace_id && (
-                <>
-                  <span className="text-gray-600">•</span>
-                  <span className="text-xs text-gray-500 font-mono">
-                    trace: {log.trace_id.slice(0, 8)}...
-                  </span>
-                </>
-              )}
+          <div className="flex-1 min-w-0 flex items-center gap-4">
+            <span className="text-xs text-gray-400 whitespace-nowrap">
+              {new Date(log.timestamp).toLocaleTimeString()}
+            </span>
+
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-gray-200 truncate block">
+                {log.body || "No message"}
+              </span>
             </div>
 
-            <p className="text-sm text-gray-200 mb-2 overflow-hidden">
-              <span className="block truncate">{log.body || "No message"}</span>
-            </p>
-
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-gray-500">
-                {log.instrumentation_library &&
-                  `Library: ${log.instrumentation_library}`}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              {log.service_name && (
+                <Badge
+                  variant="outline"
+                  className="border-gray-600 text-gray-400 text-xs"
+                >
+                  {log.service_name}
+                </Badge>
+              )}
+              {log.trace_id && (
+                <span className="font-mono">{log.trace_id.slice(0, 8)}...</span>
+              )}
+              <div className="flex items-center gap-1">
                 {isExpanded ? (
-                  <>
-                    <ChevronDown className="h-3 w-3" />
-                    <span>Less</span>
-                  </>
+                  <ChevronDown className="h-3 w-3" />
                 ) : (
-                  <>
-                    <ChevronRight className="h-3 w-3" />
-                    <span>More</span>
-                  </>
+                  <ChevronRight className="h-3 w-3" />
                 )}
               </div>
             </div>
@@ -244,7 +228,7 @@ function LogEntry({ log }: { log: Log }) {
         </div>
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="px-4 pb-4">
+      <CollapsibleContent className="px-3 pb-3">
         <div className="border-t border-gray-700 pt-4 space-y-4">
           {/* Full message */}
           <div>

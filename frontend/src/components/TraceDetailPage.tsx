@@ -171,7 +171,7 @@ export default function TraceDetailPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       <div className="flex items-center gap-4">
         <Button
           asChild
@@ -248,17 +248,17 @@ export default function TraceDetailPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800 flex-1 min-h-0">
         <CardHeader>
           <CardTitle className="text-gray-200">Trace Waterfall</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="h-full pb-6">
           {!spans || spans.length === 0 ? (
             <div className="text-gray-400 text-center py-8">
               No spans found for this trace
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="h-full overflow-y-auto space-y-1">
               {spanTree.map((node) => (
                 <SpanTreeView key={node.span.span_id} node={node} />
               ))}

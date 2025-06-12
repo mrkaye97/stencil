@@ -34,7 +34,7 @@ export default function TracesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Traces</h1>
@@ -61,11 +61,11 @@ export default function TracesPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800 flex-1 min-h-0">
         <CardHeader>
           <CardTitle className="text-gray-200">All Traces</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="h-full pb-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-gray-400">Loading traces...</div>
@@ -77,7 +77,7 @@ export default function TracesPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="h-full overflow-y-auto space-y-3">
               {filteredTraces.map((trace) => (
                 <TraceCard key={trace.trace_id} trace={trace} />
               ))}
