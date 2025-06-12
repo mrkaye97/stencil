@@ -9,38 +9,98 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TracesRouteImport } from './routes/traces'
+import { Route as LogsRouteImport } from './routes/logs'
+import { Route as GraphsRouteImport } from './routes/graphs'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TracesTraceIdRouteImport } from './routes/traces/$traceId'
 
+const TracesRoute = TracesRouteImport.update({
+  id: '/traces',
+  path: '/traces',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogsRoute = LogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GraphsRoute = GraphsRouteImport.update({
+  id: '/graphs',
+  path: '/graphs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TracesTraceIdRoute = TracesTraceIdRouteImport.update({
+  id: '/$traceId',
+  path: '/$traceId',
+  getParentRoute: () => TracesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/graphs': typeof GraphsRoute
+  '/logs': typeof LogsRoute
+  '/traces': typeof TracesRouteWithChildren
+  '/traces/$traceId': typeof TracesTraceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/graphs': typeof GraphsRoute
+  '/logs': typeof LogsRoute
+  '/traces': typeof TracesRouteWithChildren
+  '/traces/$traceId': typeof TracesTraceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/graphs': typeof GraphsRoute
+  '/logs': typeof LogsRoute
+  '/traces': typeof TracesRouteWithChildren
+  '/traces/$traceId': typeof TracesTraceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/graphs' | '/logs' | '/traces' | '/traces/$traceId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/graphs' | '/logs' | '/traces' | '/traces/$traceId'
+  id: '__root__' | '/' | '/graphs' | '/logs' | '/traces' | '/traces/$traceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GraphsRoute: typeof GraphsRoute
+  LogsRoute: typeof LogsRoute
+  TracesRoute: typeof TracesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/traces': {
+      id: '/traces'
+      path: '/traces'
+      fullPath: '/traces'
+      preLoaderRoute: typeof TracesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logs': {
+      id: '/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/graphs': {
+      id: '/graphs'
+      path: '/graphs'
+      fullPath: '/graphs'
+      preLoaderRoute: typeof GraphsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +108,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/traces/$traceId': {
+      id: '/traces/$traceId'
+      path: '/$traceId'
+      fullPath: '/traces/$traceId'
+      preLoaderRoute: typeof TracesTraceIdRouteImport
+      parentRoute: typeof TracesRoute
+    }
   }
 }
 
+interface TracesRouteChildren {
+  TracesTraceIdRoute: typeof TracesTraceIdRoute
+}
+
+const TracesRouteChildren: TracesRouteChildren = {
+  TracesTraceIdRoute: TracesTraceIdRoute,
+}
+
+const TracesRouteWithChildren =
+  TracesRoute._addFileChildren(TracesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GraphsRoute: GraphsRoute,
+  LogsRoute: LogsRoute,
+  TracesRoute: TracesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
