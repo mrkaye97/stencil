@@ -1,8 +1,8 @@
 import { useTraces } from "../lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { Link } from "@tanstack/react-router";
 import { Search, ExternalLink, Clock, Activity } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -97,7 +97,6 @@ function TraceCard({ trace }: { trace: Trace }) {
     addSuffix: true,
   });
 
-  // Determine status based on duration (for demo purposes)
   const getStatusInfo = () => {
     if (!duration) return { color: "bg-gray-600", label: "Unknown" };
     if (duration > 5000) return { color: "bg-red-600", label: "Slow" };
@@ -146,7 +145,7 @@ function TraceCard({ trace }: { trace: Trace }) {
           size="sm"
           className="border-gray-700 text-gray-300 hover:bg-gray-700"
         >
-          <Link to="/traces/$traceId" params={{ traceId: trace.trace_id }}>
+          <Link to="/trace/$traceId" params={{ traceId: trace.trace_id }}>
             <ExternalLink className="h-3 w-3 mr-1" />
             View Details
           </Link>

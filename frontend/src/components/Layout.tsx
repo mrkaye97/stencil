@@ -1,11 +1,6 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { Link, useLocation, Outlet } from "@tanstack/react-router";
+import { cn } from "../lib/utils";
 import { BarChart3, Database, GitBranch, Home, Network } from "lucide-react";
-
-interface LayoutProps {
-  children: ReactNode;
-}
 
 const navigationItems = [
   {
@@ -30,7 +25,7 @@ const navigationItems = [
   },
 ];
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout() {
   const location = useLocation();
 
   return (
@@ -68,7 +63,9 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 p-6 overflow-hidden">{children}</main>
+        <main className="flex-1 p-6 overflow-hidden">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

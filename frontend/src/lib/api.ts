@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Trace, Span, Log } from '../types/api';
 
-const API_BASE_URL = 'http://localhost:8080'; // Adjust to match your backend port
+const API_BASE_URL = 'http://localhost:8080';
 
-// API functions
 const fetchTraces = async (): Promise<Trace[]> => {
   const response = await fetch(`${API_BASE_URL}/traces`);
   if (!response.ok) {
@@ -44,12 +43,11 @@ const fetchLogs = async (): Promise<Log[]> => {
   return response.json();
 };
 
-// React Query hooks
 export const useTraces = () => {
   return useQuery({
     queryKey: ['traces'],
     queryFn: fetchTraces,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 };
 

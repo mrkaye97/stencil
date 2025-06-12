@@ -1,8 +1,8 @@
 import { useParams } from "@tanstack/react-router";
 import { useTrace, useTraceSpans } from "../lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import {
   ArrowLeft,
   Clock,
@@ -25,29 +25,26 @@ interface SpanTreeNode {
 }
 
 export default function TraceDetailPage() {
-  const { traceId } = useParams({ from: "/traces/$traceId" });
+  const { traceId } = useParams({ strict: false });
   const {
     data: trace,
     isLoading: traceLoading,
     error: traceError,
-  } = useTrace(traceId);
+  } = useTrace(traceId || "");
   const {
     data: spans,
     isLoading: spansLoading,
     error: spansError,
-  } = useTraceSpans(traceId);
+  } = useTraceSpans(traceId || "");
 
-  // Build span tree for waterfall view
   const spanTree = useMemo(() => {
     if (!spans || spans.length === 0) return [];
 
-    // Find the root span (no parent or parent not in this trace)
     const spanMap = new Map(spans.map((span) => [span.span_id, span]));
     const rootSpans = spans.filter(
       (span) => !span.parent_span_id || !spanMap.has(span.parent_span_id)
     );
 
-    // Get trace start time and duration for relative positioning
     const traceStartTime = Math.min(
       ...spans.map((s) => new Date(s.start_time).getTime())
     );
@@ -70,13 +67,7 @@ export default function TraceDetailPage() {
       const startOffset = ((startTime - traceStartTime) / traceDuration) * 100;
       const endOffset = ((endTime - traceStartTime) / traceDuration) * 100;
 
-      return {
-        span,
-        children,
-        depth,
-        startOffset,
-        endOffset,
-      };
+      return { span, children, depth, startOffset, endOffset };
     }
 
     return rootSpans
@@ -275,7 +266,7 @@ function SpanTreeView({ node }: { node: SpanTreeNode }) {
   const [showDetails, setShowDetails] = useState(false);
   const hasChildren = node.children.length > 0;
 
-  const duration = Math.round(node.span.duration_ns / 1000000); // Convert to ms
+  const duration = Math.round(node.span.duration_ns / 1000000);
   const statusColor =
     node.span.status_code === 1
       ? "text-green-400 bg-green-900"
@@ -283,7 +274,7 @@ function SpanTreeView({ node }: { node: SpanTreeNode }) {
         ? "text-red-400 bg-red-900"
         : "text-gray-400 bg-gray-700";
 
-  const barWidth = Math.max(node.endOffset - node.startOffset, 1); // Minimum 1% width
+  const barWidth = Math.max(node.endOffset - node.startOffset, 1);
   const depthIndent = node.depth * 20;
 
   return (
@@ -292,7 +283,6 @@ function SpanTreeView({ node }: { node: SpanTreeNode }) {
         className="group relative p-2 hover:bg-gray-800 rounded-lg cursor-pointer"
         onClick={() => setShowDetails(!showDetails)}
       >
-        {/* Span timeline bar */}
         <div className="relative h-8 mb-2">
           <div
             className="absolute top-1 h-6 rounded flex items-center px-2 text-xs font-medium"

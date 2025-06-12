@@ -1,20 +1,20 @@
 import { useLogs } from "../lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "./ui/collapsible";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "./ui/select";
 import {
   Search,
   Filter,
@@ -339,7 +339,7 @@ function LogEntry({ log }: { log: Log }) {
                             className="h-6 w-6 p-0 text-gray-400 hover:text-white"
                           >
                             <Link
-                              to="/traces/$traceId"
+                              to="/trace/$traceId"
                               params={{ traceId: log.trace_id }}
                             >
                               <ExternalLink className="h-3 w-3" />
