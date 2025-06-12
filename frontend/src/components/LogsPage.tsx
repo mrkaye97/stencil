@@ -2,6 +2,12 @@ import { useLogs } from "../lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -9,9 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, AlertTriangle, Info, Bug } from "lucide-react";
+import {
+  Search,
+  Filter,
+  AlertTriangle,
+  Info,
+  Bug,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  Copy,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import type { Log } from "../types/api";
 
 type SeverityFilter = "all" | "error" | "warn" | "info" | "debug";
@@ -135,6 +152,7 @@ export default function LogsPage() {
 }
 
 function LogEntry({ log }: { log: Log }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const timeAgo = formatDistanceToNow(new Date(log.timestamp), {
     addSuffix: true,
   });
@@ -154,53 +172,223 @@ function LogEntry({ log }: { log: Log }) {
   const severity = getSeverityInfo(log.severity_number);
   const SeverityIcon = severity.icon;
 
-  return (
-    <div className="p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 pt-1">
-          <Badge
-            className={`${severity.color} text-white flex items-center gap-1`}
-          >
-            <SeverityIcon className="h-3 w-3" />
-            {log.severity_text || severity.label}
-          </Badge>
-        </div>
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs text-gray-400">{timeAgo}</span>
-            {log.service_name && (
-              <>
-                <span className="text-gray-600">•</span>
-                <Badge
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 text-xs"
-                >
-                  {log.service_name}
-                </Badge>
-              </>
-            )}
-            {log.trace_id && (
-              <>
-                <span className="text-gray-600">•</span>
-                <span className="text-xs text-gray-500 font-mono">
-                  trace: {log.trace_id.slice(0, 8)}...
-                </span>
-              </>
-            )}
+  return (
+    <Collapsible
+      open={isExpanded}
+      onOpenChange={setIsExpanded}
+      className="bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
+    >
+      <CollapsibleTrigger className="w-full p-4 text-left">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 pt-1">
+            <Badge
+              className={`${severity.color} text-white flex items-center gap-1`}
+            >
+              <SeverityIcon className="h-3 w-3" />
+              {log.severity_text || severity.label}
+            </Badge>
           </div>
 
-          <p className="text-sm text-gray-200 mb-2">
-            {log.body || "No message"}
-          </p>
-
-          {log.instrumentation_library && (
-            <div className="text-xs text-gray-500">
-              Library: {log.instrumentation_library}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs text-gray-400">{timeAgo}</span>
+              {log.service_name && (
+                <>
+                  <span className="text-gray-600">•</span>
+                  <Badge
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 text-xs"
+                  >
+                    {log.service_name}
+                  </Badge>
+                </>
+              )}
+              {log.trace_id && (
+                <>
+                  <span className="text-gray-600">•</span>
+                  <span className="text-xs text-gray-500 font-mono">
+                    trace: {log.trace_id.slice(0, 8)}...
+                  </span>
+                </>
+              )}
             </div>
-          )}
+
+            <p className="text-sm text-gray-200 mb-2 overflow-hidden">
+              <span className="block truncate">{log.body || "No message"}</span>
+            </p>
+
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-500">
+                {log.instrumentation_library &&
+                  `Library: ${log.instrumentation_library}`}
+              </div>
+              <div className="flex items-center gap-1 text-xs text-gray-400">
+                {isExpanded ? (
+                  <>
+                    <ChevronDown className="h-3 w-3" />
+                    <span>Less</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="h-3 w-3" />
+                    <span>More</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </CollapsibleTrigger>
+
+      <CollapsibleContent className="px-4 pb-4">
+        <div className="border-t border-gray-700 pt-4 space-y-4">
+          {/* Full message */}
+          <div>
+            <div className="text-xs font-medium text-gray-400 mb-2">
+              Full Message
+            </div>
+            <div className="bg-gray-900 p-3 rounded border border-gray-700">
+              <pre className="text-sm text-gray-200 whitespace-pre-wrap break-words">
+                {log.body || "No message"}
+              </pre>
+            </div>
+          </div>
+
+          {/* Metadata grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs font-medium text-gray-400 mb-1">
+                  Log Details
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 w-16">ID:</span>
+                    <code className="text-xs text-gray-300 bg-gray-900 px-2 py-1 rounded">
+                      {log.log_id}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                      onClick={() => copyToClipboard(log.log_id)}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-16">Severity:</span>
+                    <div className="text-gray-300">
+                      {log.severity_text || severity.label} (
+                      {log.severity_number})
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-16">Service:</span>
+                    <div className="text-gray-300">
+                      {log.service_name || "Unknown"}
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-16">Library:</span>
+                    <div className="text-gray-300">
+                      {log.instrumentation_library || "Unknown"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs font-medium text-gray-400 mb-1">
+                  Timing
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 w-20">Timestamp:</span>
+                    <div className="text-gray-300">
+                      <div>{new Date(log.timestamp).toISOString()}</div>
+                      <div className="text-xs text-gray-500">{timeAgo}</div>
+                    </div>
+                  </div>
+                  {log.observed_timestamp && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-gray-500 w-20">Observed:</span>
+                      <div className="text-gray-300">
+                        {new Date(log.observed_timestamp).toISOString()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {(log.trace_id || log.span_id) && (
+                <div>
+                  <div className="text-xs font-medium text-gray-400 mb-1">
+                    Tracing
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    {log.trace_id && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 w-20">Trace:</span>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs text-gray-300 bg-gray-900 px-2 py-1 rounded">
+                            {log.trace_id}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                            onClick={() => copyToClipboard(log.trace_id!)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                          >
+                            <Link
+                              to="/traces/$traceId"
+                              params={{ traceId: log.trace_id }}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {log.span_id && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 w-20">Span:</span>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs text-gray-300 bg-gray-900 px-2 py-1 rounded">
+                            {log.span_id}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                            onClick={() => copyToClipboard(log.span_id!)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

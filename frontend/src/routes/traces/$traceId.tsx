@@ -1,9 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import TraceDetailPage from "../../components/TraceDetailPage";
 
-export const Route = createFileRoute('/traces/$traceId')({
-  component: RouteComponent,
-})
-
-function RouteComponent() {
-  return <div>Hello "/traces/$traceId"!</div>
-}
+export const Route = createFileRoute("/traces/$traceId")({
+  component: TraceDetailPage,
+});

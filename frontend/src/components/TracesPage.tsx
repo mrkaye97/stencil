@@ -97,33 +97,49 @@ function TraceCard({ trace }: { trace: Trace }) {
     addSuffix: true,
   });
 
+  // Determine status based on duration (for demo purposes)
+  const getStatusInfo = () => {
+    if (!duration) return { color: "bg-gray-600", label: "Unknown" };
+    if (duration > 5000) return { color: "bg-red-600", label: "Slow" };
+    if (duration > 1000) return { color: "bg-yellow-600", label: "Warning" };
+    return { color: "bg-green-600", label: "Good" };
+  };
+
+  const status = getStatusInfo();
+
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors border border-gray-700 hover:border-gray-600">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3 mb-2">
-          <h3 className="text-sm font-medium text-white truncate">
+        <div className="flex items-center gap-3 mb-3">
+          <h3 className="text-sm font-medium text-white truncate font-mono">
             {trace.trace_id}
           </h3>
           <Badge variant="outline" className="border-gray-600 text-gray-300">
             {trace.span_count} spans
           </Badge>
+          <Badge className={`${status.color} text-white text-xs`}>
+            {status.label}
+          </Badge>
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-gray-400">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-400">
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {timeAgo}
+            <span>Started {timeAgo}</span>
           </div>
           {duration && (
             <div className="flex items-center gap-1">
               <Activity className="h-3 w-3" />
-              {duration}ms
+              <span>{duration}ms duration</span>
             </div>
           )}
+          <div className="text-gray-500">
+            {new Date(trace.start_time).toLocaleString()}
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-4">
         <Button
           asChild
           variant="outline"
@@ -132,7 +148,7 @@ function TraceCard({ trace }: { trace: Trace }) {
         >
           <Link to="/traces/$traceId" params={{ traceId: trace.trace_id }}>
             <ExternalLink className="h-3 w-3 mr-1" />
-            View
+            View Details
           </Link>
         </Button>
       </div>

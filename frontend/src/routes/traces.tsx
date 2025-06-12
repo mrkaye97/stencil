@@ -1,9 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import TracesPage from "../components/TracesPage";
 
-export const Route = createFileRoute('/traces')({
-  component: RouteComponent,
-})
-
-function RouteComponent() {
-  return <div>Hello "/traces"!</div>
-}
+export const Route = createFileRoute("/traces")({
+  component: TracesPage,
+});
