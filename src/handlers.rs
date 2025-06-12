@@ -262,6 +262,55 @@ pub async fn list_logs_handler(
     Ok(Json(logs))
 }
 
+pub async fn get_trace_spans_handler(
+    State(pool): State<Arc<PgPool>>,
+    Path(trace_id): axum::extract::Path<String>,
+) -> Result<Json<Vec<WriteableSpan>>, StatusCode> {
+    let records = sqlx::query!(
+        r#"
+        SELECT
+            id,
+            trace_id,
+            parent_span_id,
+            operation_name,
+            started_at,
+            ended_at,
+            duration_ns,
+            status_code,
+            status_message,
+            instrumentation_library,
+            service_name
+        FROM span
+        WHERE trace_id = $1
+        ORDER BY started_at ASC
+        "#,
+        trace_id
+    )
+    .fetch_all(&*pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let spans: Vec<WriteableSpan> = records
+        .into_iter()
+        .map(|record| WriteableSpan {
+            span_id: record.id,
+            trace_id: record.trace_id,
+            parent_span_id: record.parent_span_id,
+            operation_name: record.operation_name,
+            start_time: record.started_at,
+            end_time: record.ended_at,
+            duration_ns: record.duration_ns,
+            status_code: record.status_code,
+            status_message: record.status_message,
+            span_kind: crud::DbSpanKind::Unspecified,
+            instrumentation_library: record.instrumentation_library,
+            service_name: record.service_name,
+        })
+        .collect();
+
+    Ok(Json(spans))
+}
+
 async fn health_check() -> &'static str {
     "OK"
 }
@@ -279,6 +328,7 @@ pub fn create_api_router(pool: Arc<PgPool>) -> Router {
         .route("/health", get(health_check))
         .route("/traces", get(list_traces_handler))
         .route("/traces/{trace_id}", get(get_trace_handler))
+        .route("/traces/{trace_id}/spans", get(get_trace_spans_handler))
         .route("/spans", get(list_spans_handler))
         .route("/logs", get(list_logs_handler))
         .with_state(pool)
