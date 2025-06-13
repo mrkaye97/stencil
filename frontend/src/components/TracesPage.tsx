@@ -106,7 +106,7 @@ function TraceCard({ trace }: { trace: Trace }) {
   const status = getStatusInfo();
 
   return (
-    <div className="flex items-center justify-between p-4 bg-card rounded-lg hover:bg-card/80 transition-colors border border-border hover:border-border/80">
+    <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-accent/50 hover:bg-card/80 transition-all duration-200">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-3">
           <h3 className="text-sm font-medium text-foreground truncate font-mono">
@@ -140,7 +140,11 @@ function TraceCard({ trace }: { trace: Trace }) {
 
       <div className="flex items-center gap-2 ml-4">
         <Link to="/trace/$traceId" params={{ traceId: trace.trace_id }}>
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            className="hover:bg-accent hover:text-accent-foreground hover:border-accent transition-all duration-200"
+          >
             <ExternalLink className="h-3 w-3 mr-1" />
             View Details
           </Button>

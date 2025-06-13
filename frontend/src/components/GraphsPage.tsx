@@ -227,16 +227,20 @@ export default function GraphsPage() {
           <CardTitle>Custom Graph Builder</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
+          <div className="text-center py-12">
+            <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
+            <h3 className="text-xl font-semibold text-foreground mb-3">
               Coming Soon
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Build custom graphs from your trace data with flexible queries and
               visualizations.
             </p>
-            <Button disabled variant="secondary">
+            <Button
+              disabled
+              variant="secondary"
+              className="transition-all duration-200"
+            >
               Create Custom Graph
             </Button>
           </div>

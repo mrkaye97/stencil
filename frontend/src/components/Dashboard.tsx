@@ -121,11 +121,11 @@ export default function Dashboard() {
             ) : recentTraces.length === 0 ? (
               <div className="text-muted-foreground">No traces found</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {recentTraces.map((trace) => (
                   <div
                     key={trace.trace_id}
-                    className="flex items-center justify-between p-3 rounded-lg"
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-all duration-200"
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground truncate">
@@ -179,9 +179,12 @@ export default function Dashboard() {
             ) : recentLogs.length === 0 ? (
               <div className="text-muted-foreground">No logs found</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {recentLogs.map((log) => (
-                  <div key={log.log_id} className="p-3rounded-lg">
+                  <div
+                    key={log.log_id}
+                    className="p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-all duration-200"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <Badge
                         variant={

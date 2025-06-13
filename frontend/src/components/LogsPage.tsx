@@ -146,7 +146,7 @@ export default function LogsPage() {
               </div>
             </div>
           ) : (
-            <div className="h-full overflow-y-auto space-y-1">
+            <div className="h-full overflow-y-auto space-y-2">
               {filteredLogs.map((log) => (
                 <LogEntry key={log.log_id} log={log} />
               ))}
@@ -187,9 +187,9 @@ function LogEntry({ log }: { log: Log }) {
     <Collapsible
       open={isExpanded}
       onOpenChange={setIsExpanded}
-      className="rounded border border-border hover:border-ring transition-colors"
+      className="bg-card border border-border rounded-lg overflow-hidden hover:border-accent/50 transition-all duration-200"
     >
-      <CollapsibleTrigger className="w-full p-3 text-left hover:bg-muted/50">
+      <CollapsibleTrigger className="w-full p-4 text-left hover:bg-muted/30 transition-colors duration-200">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
             <Badge
@@ -235,14 +235,14 @@ function LogEntry({ log }: { log: Log }) {
         </div>
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="px-3 pb-3">
+      <CollapsibleContent className="px-4 pb-4">
         <div className="border-t border-border pt-4 space-y-4">
           {/* Full message */}
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2">
               Full Message
             </div>
-            <div className="bg-muted p-3 rounded border border-border">
+            <div className="bg-muted/50 p-3 rounded-md border border-border/50">
               <pre className="text-sm text-card-foreground whitespace-pre-wrap break-words">
                 {log.body || "No message"}
               </pre>
@@ -259,13 +259,13 @@ function LogEntry({ log }: { log: Log }) {
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-secondary-foreground w-16">ID:</span>
-                    <code className="text-xs text-foreground bg-muted px-2 py-1 rounded">
+                    <code className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded border border-border/50 font-mono">
                       {log.log_id}
                     </code>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       onClick={() => copyToClipboard(log.log_id)}
                     >
                       <Copy className="h-3 w-3" />
@@ -342,13 +342,13 @@ function LogEntry({ log }: { log: Log }) {
                           Trace:
                         </span>
                         <div className="flex items-center gap-2">
-                          <code className="text-xs text-foreground bg-muted px-2 py-1 rounded">
+                          <code className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded border border-border/50 font-mono">
                             {log.trace_id}
                           </code>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                             onClick={() => copyToClipboard(log.trace_id!)}
                           >
                             <Copy className="h-3 w-3" />
@@ -357,7 +357,7 @@ function LogEntry({ log }: { log: Log }) {
                             asChild
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-accent hover:bg-muted/50 transition-colors"
                           >
                             <Link
                               to="/trace/$traceId"
@@ -375,13 +375,13 @@ function LogEntry({ log }: { log: Log }) {
                           Span:
                         </span>
                         <div className="flex items-center gap-2">
-                          <code className="text-xs text-foreground bg-muted px-2 py-1 rounded">
+                          <code className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded border border-border/50 font-mono">
                             {log.span_id}
                           </code>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                             onClick={() => copyToClipboard(log.span_id!)}
                           >
                             <Copy className="h-3 w-3" />
