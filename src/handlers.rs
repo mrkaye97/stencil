@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use axum::body::Bytes;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
 use prost::Message;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
@@ -95,21 +96,81 @@ pub async fn insert_logs_handler(
     Ok(Json(json!({ "status": "success" })))
 }
 
-pub async fn list_traces_handler(
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpanAttribute {
+    pub key: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SearchTracesQuery {
+    service_name: Option<String>,
+    operation_name: Option<String>,
+    min_duration_ns: Option<i64>,
+    max_duration_ns: Option<i64>,
+    status_code: Option<i32>,
+    span_attributes: Option<Vec<SpanAttribute>>,
+    offset: Option<i64>,
+    limit: Option<i64>,
+}
+
+pub async fn search_traces_handler(
     State(pool): State<Arc<PgPool>>,
+    Query(query): Query<SearchTracesQuery>,
 ) -> Result<Json<Vec<WriteableTrace>>, StatusCode> {
+    let mut span_attribute_names: Vec<String> = Vec::new();
+    let mut span_attribute_values: Vec<String> = Vec::new();
+    if let Some(attrs) = &query.span_attributes {
+        for attr in attrs {
+            span_attribute_names.push(attr.key.clone());
+            span_attribute_values.push(attr.value.clone());
+        }
+    }
+
     let records = sqlx::query!(
         r#"
-        SELECT
-            id,
-            started_at,
-            ended_at,
-            duration_ns,
-            span_count
-        FROM trace
+        WITH attrs AS (
+            SELECT
+                UNNEST($6::TEXT[]) AS key,
+                UNNEST($7::TEXT[]) AS value
+        )
+
+        SELECT DISTINCT
+            t.id,
+            t.started_at,
+            t.ended_at,
+            t.duration_ns,
+            t.span_count
+        FROM trace t
+        LEFT JOIN span s ON t.id = s.trace_id
+        WHERE
+            ($1::TEXT IS NULL OR s.service_name = $1::TEXT)
+            AND ($2::TEXT IS NULL OR s.operation_name = $2::TEXT)
+            AND ($3::BIGINT IS NULL OR t.duration_ns >= $3::BIGINT)
+            AND ($4::BIGINT IS NULL OR t.duration_ns <= $4::BIGINT)
+            AND ($5::INTEGER IS NULL OR s.status_code = $5::INTEGER)
+            AND (
+                CARDINALITY($6::TEXT[]) = 0
+                OR EXISTS (
+                    SELECT 1
+                    FROM span_attribute sa
+                    JOIN attrs a ON (sa.key, sa.value) = (a.key, a.value)
+                    WHERE sa.span_id = s.id
+                )
+            )
         ORDER BY started_at DESC
-        LIMIT 100
-        "#
+        LIMIT COALESCE($8::BIGINT, 100)
+        OFFSET COALESCE($9::BIGINT, 0)
+        "#,
+        query.service_name.as_deref(),
+        query.operation_name.as_deref(),
+        query.min_duration_ns,
+        query.max_duration_ns,
+        query.status_code,
+        &span_attribute_names,
+        &span_attribute_values,
+        query.limit.unwrap_or(100),
+        query.offset.unwrap_or(0),
     )
     .fetch_all(&*pool)
     .await
@@ -326,7 +387,7 @@ pub fn create_otel_router(pool: Arc<PgPool>) -> Router {
 pub fn create_api_router(pool: Arc<PgPool>) -> Router {
     Router::new()
         .route("/health", get(health_check))
-        .route("/traces", get(list_traces_handler))
+        .route("/traces", get(search_traces_handler))
         .route("/traces/{trace_id}", get(get_trace_handler))
         .route("/traces/{trace_id}/spans", get(get_trace_spans_handler))
         .route("/spans", get(list_spans_handler))
