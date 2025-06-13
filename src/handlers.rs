@@ -372,6 +372,25 @@ pub async fn get_trace_spans_handler(
     Ok(Json(spans))
 }
 
+pub async fn list_span_attributes_handler(
+    State(pool): State<Arc<PgPool>>,
+) -> Result<Json<Vec<String>>, StatusCode> {
+    let records = sqlx::query!(
+        r#"
+        SELECT DISTINCT key
+        FROM span_attribute
+        ORDER BY key
+        "#,
+    )
+    .fetch_all(&*pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let attributes: Vec<String> = records.into_iter().map(|record| record.key).collect();
+
+    Ok(Json(attributes))
+}
+
 async fn health_check() -> &'static str {
     "OK"
 }
@@ -392,5 +411,6 @@ pub fn create_api_router(pool: Arc<PgPool>) -> Router {
         .route("/traces/{trace_id}/spans", get(get_trace_spans_handler))
         .route("/spans", get(list_spans_handler))
         .route("/logs", get(list_logs_handler))
+        .route("/span-attributes", get(list_span_attributes_handler))
         .with_state(pool)
 }
