@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Link } from "@tanstack/react-router";
-import { Activity, Database, Network, Clock } from "lucide-react";
+import { Activity, Database, Network, Clock, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
@@ -220,6 +220,35 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Query CTA */}
+      <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Search className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-foreground">
+                  Advanced Query Builder
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Filter traces by duration, service, status, and more with our
+                  powerful query interface
+                </p>
+              </div>
+            </div>
+            <Button
+              asChild
+              variant="default"
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Link to="/query">Try Query Builder</Link>
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
     </div>
   );
 }
