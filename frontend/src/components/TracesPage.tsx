@@ -325,7 +325,7 @@ export default function TracesPage() {
                   className="bg-accent/10 border-accent/20 text-accent-foreground"
                 >
                   {filter.type === "attribute"
-                    ? `${filter.attributeKey || "attribute"} ${filter.operator.replace(/_/g, " ")} ${filter.value}`
+                    ? `${filter.attributeKey || "attribute"}: ${filter.value}`
                     : `${filter.type} ${filter.operator.replace(/_/g, " ")} ${filter.value}`}
                   <X
                     className="h-3 w-3 ml-1 cursor-pointer hover:text-destructive"
@@ -498,11 +498,6 @@ function FilterRow({
           { value: "greater_than", label: ">" },
           { value: "less_than", label: "<" },
         ];
-      case "attribute":
-        return [
-          { value: "equals", label: "equals" },
-          { value: "not_equals", label: "not equals" },
-        ];
       default:
         return [{ value: "equals", label: "equals" }];
     }
@@ -655,23 +650,26 @@ function FilterRow({
         </Select>
       )}
 
-      <Select
-        value={filter.operator}
-        onValueChange={(value) =>
-          onUpdate({ operator: value as FilterOperator })
-        }
-      >
-        <SelectTrigger className="w-32">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {getOperatorOptions(filter.type).map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Only show operator dropdown for non-attribute filters */}
+      {filter.type !== "attribute" && (
+        <Select
+          value={filter.operator}
+          onValueChange={(value) =>
+            onUpdate({ operator: value as FilterOperator })
+          }
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {getOperatorOptions(filter.type).map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {renderValueInput()}
 
