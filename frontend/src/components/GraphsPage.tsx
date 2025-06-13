@@ -228,11 +228,11 @@ export default function GraphsPage() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-muted-foreground/60 mx-auto mb-4" />
+            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
               Coming Soon
             </h3>
-            <p className="text-muted-foreground/80 mb-4">
+            <p className="text-muted-foreground mb-4">
               Build custom graphs from your trace data with flexible queries and
               visualizations.
             </p>

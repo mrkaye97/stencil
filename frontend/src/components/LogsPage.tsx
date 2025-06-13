@@ -170,9 +170,9 @@ function LogEntry({ log }: { log: Log }) {
     } else if (severityNumber >= 13) {
       return { color: "bg-chart-4", icon: AlertTriangle, label: "WARN" };
     } else if (severityNumber >= 9) {
-      return { color: "bg-primary", icon: Info, label: "INFO" };
+      return { color: "bg-chart-1", icon: Info, label: "INFO" };
     } else {
-      return { color: "bg-muted", icon: Bug, label: "DEBUG" };
+      return { color: "bg-chart-3", icon: Bug, label: "DEBUG" };
     }
   };
 
@@ -215,7 +215,7 @@ function LogEntry({ log }: { log: Log }) {
               {log.service_name && (
                 <Badge
                   variant="outline"
-                  className="border-border text-muted-foreground text-xs"
+                  className="border-border text-secondary-foreground text-xs"
                 >
                   {log.service_name}
                 </Badge>
@@ -258,8 +258,8 @@ function LogEntry({ log }: { log: Log }) {
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground w-16">ID:</span>
-                    <code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                    <span className="text-secondary-foreground w-16">ID:</span>
+                    <code className="text-xs text-foreground bg-muted px-2 py-1 rounded">
                       {log.log_id}
                     </code>
                     <Button
@@ -272,7 +272,7 @@ function LogEntry({ log }: { log: Log }) {
                     </Button>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-muted-foreground w-16">
+                    <span className="text-secondary-foreground w-16">
                       Severity:
                     </span>
                     <div className="text-card-foreground">
@@ -281,13 +281,17 @@ function LogEntry({ log }: { log: Log }) {
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-muted-foreground w-16">Service:</span>
+                    <span className="text-secondary-foreground w-16">
+                      Service:
+                    </span>
                     <div className="text-card-foreground">
                       {log.service_name || "Unknown"}
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-muted-foreground w-16">Library:</span>
+                    <span className="text-secondary-foreground w-16">
+                      Library:
+                    </span>
                     <div className="text-card-foreground">
                       {log.instrumentation_library || "Unknown"}
                     </div>
@@ -303,7 +307,7 @@ function LogEntry({ log }: { log: Log }) {
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-start gap-2">
-                    <span className="text-muted-foreground w-20">
+                    <span className="text-secondary-foreground w-20">
                       Timestamp:
                     </span>
                     <div className="text-card-foreground">
@@ -315,7 +319,7 @@ function LogEntry({ log }: { log: Log }) {
                   </div>
                   {log.observed_timestamp && (
                     <div className="flex items-start gap-2">
-                      <span className="text-muted-foreground w-20">
+                      <span className="text-secondary-foreground w-20">
                         Observed:
                       </span>
                       <div className="text-card-foreground">
@@ -334,11 +338,11 @@ function LogEntry({ log }: { log: Log }) {
                   <div className="space-y-1 text-sm">
                     {log.trace_id && (
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-20">
+                        <span className="text-secondary-foreground w-20">
                           Trace:
                         </span>
                         <div className="flex items-center gap-2">
-                          <code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          <code className="text-xs text-foreground bg-muted px-2 py-1 rounded">
                             {log.trace_id}
                           </code>
                           <Button
@@ -367,11 +371,11 @@ function LogEntry({ log }: { log: Log }) {
                     )}
                     {log.span_id && (
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-20">
+                        <span className="text-secondary-foreground w-20">
                           Span:
                         </span>
                         <div className="flex items-center gap-2">
-                          <code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          <code className="text-xs text-foreground bg-muted px-2 py-1 rounded">
                             {log.span_id}
                           </code>
                           <Button

@@ -188,15 +188,10 @@ export default function Dashboard() {
                           log.severity_number >= 17
                             ? "destructive"
                             : log.severity_number >= 13
-                              ? "default"
-                              : "secondary"
-                        }
-                        className={
-                          log.severity_number >= 17
-                            ? ""
-                            : log.severity_number >= 13
-                              ? "bg-chart-4"
-                              : "bg-muted"
+                              ? "warning"
+                              : log.severity_number >= 9
+                                ? "default"
+                                : "secondary"
                         }
                       >
                         {log.severity_text || `Level ${log.severity_number}`}

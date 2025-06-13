@@ -114,7 +114,7 @@ function TraceCard({ trace }: { trace: Trace }) {
           </h3>
           <Badge
             variant="outline"
-            className="border-border text-muted-foreground"
+            className="border-border text-secondary-foreground"
           >
             {trace.span_count} spans
           </Badge>
@@ -132,7 +132,7 @@ function TraceCard({ trace }: { trace: Trace }) {
               <span>{duration}ms duration</span>
             </div>
           )}
-          <div className="text-muted-foreground/80">
+          <div className="text-secondary-foreground">
             {new Date(trace.start_time).toLocaleString()}
           </div>
         </div>
