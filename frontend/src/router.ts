@@ -5,7 +5,6 @@ import TracesPage from './components/TracesPage'
 import TraceDetailPage from './components/TraceDetailPage'
 import LogsPage from './components/LogsPage'
 import GraphsPage from './components/GraphsPage'
-import QueryPage from './components/QueryPage'
 
 const rootRoute = createRootRoute({
   component: Layout,
@@ -41,19 +40,12 @@ const graphsRoute = createRoute({
   component: GraphsPage,
 })
 
-const queryRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/query',
-  component: QueryPage,
-})
-
 const routeTree = rootRoute.addChildren([
   indexRoute,
   tracesRoute,
   traceDetailRoute,
   logsRoute,
   graphsRoute,
-  queryRoute,
 ])
 
 export const router = createRouter({ routeTree })

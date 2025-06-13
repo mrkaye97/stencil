@@ -1,13 +1,6 @@
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { cn } from "../lib/utils";
-import {
-  BarChart3,
-  Database,
-  GitBranch,
-  Home,
-  Network,
-  Search,
-} from "lucide-react";
+import { BarChart3, Database, GitBranch, Home, Network } from "lucide-react";
 
 const navigationItems = [
   {
@@ -24,11 +17,6 @@ const navigationItems = [
     name: "Logs",
     href: "/logs",
     icon: Database,
-  },
-  {
-    name: "Query",
-    href: "/query",
-    icon: Search,
   },
   {
     name: "Graphs",

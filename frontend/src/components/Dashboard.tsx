@@ -230,11 +230,11 @@ export default function Dashboard() {
               </div>
               <div>
                 <CardTitle className="text-foreground">
-                  Advanced Query Builder
+                  Advanced Trace Filtering
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Filter traces by duration, service, status, and more with our
-                  powerful query interface
+                  Filter traces by duration, service, status, span attributes, and more with our
+                  powerful filtering interface
                 </p>
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function Dashboard() {
               variant="default"
               className="bg-primary hover:bg-primary/90"
             >
-              <Link to="/query">Try Query Builder</Link>
+              <Link to="/traces">Explore Traces</Link>
             </Button>
           </div>
         </CardHeader>
