@@ -237,7 +237,6 @@ function LogEntry({ log }: { log: Log }) {
 
       <CollapsibleContent className="px-4 pb-4">
         <div className="border-t border-border pt-4 space-y-4">
-          {/* Full message */}
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2">
               Full Message
@@ -249,7 +248,6 @@ function LogEntry({ log }: { log: Log }) {
             </div>
           </div>
 
-          {/* Metadata grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
               <div>

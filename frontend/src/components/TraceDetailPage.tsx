@@ -335,7 +335,6 @@ function SpanTreeView({ node }: { node: SpanTreeNode }) {
           </div>
         </div>
 
-        {/* Expanded details */}
         {showDetails && (
           <div className="mt-3 p-3 bg-card/50 rounded border border-border">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -391,7 +390,6 @@ function SpanTreeView({ node }: { node: SpanTreeNode }) {
         )}
       </div>
 
-      {/* Render children */}
       <div className="ml-4">
         {node.children.map((child) => (
           <SpanTreeView key={child.span.span_id} node={child} />

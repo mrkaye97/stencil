@@ -221,7 +221,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Query CTA */}
       <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
         <CardHeader>
           <div className="flex items-center justify-between">

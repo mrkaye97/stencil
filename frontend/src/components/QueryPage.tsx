@@ -26,7 +26,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import type { Trace, Span } from "../types/api";
 
-// Filter types
 type FilterOperator =
   | "equals"
   | "not_equals"
@@ -61,7 +60,6 @@ export default function QueryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isQueryRunning, setIsQueryRunning] = useState(false);
 
-  // Available filter options based on actual data
   const filterOptions = useMemo(() => {
     if (!allSpans) return {};
 
@@ -80,7 +78,6 @@ export default function QueryPage() {
     };
   }, [allSpans]);
 
-  // Execute query and filter results
   const queryResults = useMemo((): QueryResult => {
     if (!allTraces || !allSpans) {
       return { traces: [], totalCount: 0, avgDuration: 0, errorRate: 0 };
@@ -88,14 +85,12 @@ export default function QueryPage() {
 
     let filteredTraces = allTraces;
 
-    // Apply search filter
     if (searchTerm) {
       filteredTraces = filteredTraces.filter((trace) =>
         trace.trace_id.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Apply custom filters
     filteredTraces = filteredTraces.filter((trace) => {
       const traceSpans = allSpans.filter(
         (span) => span.trace_id === trace.trace_id
@@ -193,7 +188,6 @@ export default function QueryPage() {
       });
     });
 
-    // Calculate statistics
     const totalCount = filteredTraces.length;
     const avgDuration =
       filteredTraces.reduce((sum, trace) => {
@@ -210,7 +204,7 @@ export default function QueryPage() {
       totalCount > 0 ? (errorTraces.length / totalCount) * 100 : 0;
 
     return {
-      traces: filteredTraces.slice(0, 100), // Limit results for performance
+      traces: filteredTraces.slice(0, 100),
       totalCount,
       avgDuration,
       errorRate,
@@ -242,7 +236,6 @@ export default function QueryPage() {
 
   const runQuery = () => {
     setIsQueryRunning(true);
-    // Simulate query execution
     setTimeout(() => setIsQueryRunning(false), 1000);
   };
 
@@ -268,7 +261,6 @@ export default function QueryPage() {
     status: ["equals", "not_equals", "greater_than", "less_than"],
   };
 
-  // Preset queries for common use cases
   const presetQueries = [
     {
       id: "slow-traces",
@@ -316,15 +308,12 @@ export default function QueryPage() {
     setSearchTerm("");
   };
 
-  // Keyboard shortcuts and auto-run
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Ctrl/Cmd + Enter to run query
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
         event.preventDefault();
         runQuery();
       }
-      // Ctrl/Cmd + K to focus search
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
         event.preventDefault();
         const searchInput = document.querySelector(
@@ -338,10 +327,8 @@ export default function QueryPage() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Auto-run query when filters change (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Auto-execute query after 500ms of no changes
       if (filters.length > 0 || searchTerm) {
         setIsQueryRunning(true);
         setTimeout(() => setIsQueryRunning(false), 300);
@@ -386,7 +373,6 @@ export default function QueryPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                // In a real app, this would open a save dialog
                 const queryName = prompt("Save this query as:");
                 if (queryName) {
                   alert(
@@ -405,8 +391,7 @@ export default function QueryPage() {
         </div>
       </div>
 
-      {/* Preset Queries */}
-      <Card>
+            <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5 text-accent" />
@@ -442,8 +427,7 @@ export default function QueryPage() {
         </CardContent>
       </Card>
 
-      {/* Query Builder */}
-      <Card>
+            <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -474,8 +458,7 @@ export default function QueryPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search Input */}
-          <div className="relative">
+                    <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search traces by ID... (e.g., abc123def456)"
@@ -485,8 +468,7 @@ export default function QueryPage() {
             />
           </div>
 
-          {/* Active Filters Summary */}
-          {(filters.length > 0 || searchTerm) && (
+                    {(filters.length > 0 || searchTerm) && (
             <div className="flex flex-wrap items-center gap-2 p-3 bg-accent/5 rounded-lg border border-accent/20">
               <span className="text-xs font-medium text-muted-foreground">
                 Active filters:
@@ -520,8 +502,7 @@ export default function QueryPage() {
             </div>
           )}
 
-          {/* Filters */}
-          <div className="space-y-3">
+                    <div className="space-y-3">
             {filters.map((filter) => (
               <FilterRow
                 key={filter.id}
@@ -543,8 +524,7 @@ export default function QueryPage() {
             </Button>
           </div>
 
-          {/* Preset Queries */}
-          <div className="pt-4 border-t border-border/50">
+                    <div className="pt-4 border-t border-border/50">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">
               Preset Queries
             </h3>
@@ -566,8 +546,7 @@ export default function QueryPage() {
             </div>
           </div>
 
-          {/* Clear Filters Button */}
-          <div className="pt-4 border-t border-border/50">
+                    <div className="pt-4 border-t border-border/50">
             <Button
               variant="outline"
               onClick={clearAllFilters}
@@ -579,8 +558,7 @@ export default function QueryPage() {
         </CardContent>
       </Card>
 
-      {/* Query Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
@@ -623,8 +601,7 @@ export default function QueryPage() {
         </Card>
       </div>
 
-      {/* Results */}
-      <Card className="flex-1 min-h-0">
+            <Card className="flex-1 min-h-0">
         <CardHeader>
           <CardTitle>Query Results</CardTitle>
         </CardHeader>
@@ -654,7 +631,6 @@ export default function QueryPage() {
   );
 }
 
-// Filter Row Component
 function FilterRow({
   filter,
   filterOptions,
@@ -669,8 +645,8 @@ function FilterRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/40 transition-colors">
-      <div className="text-xs text-muted-foreground font-medium min-w-[60px]">
+    <div className="flex items-center gap-3 p-4 bg-card border-2 border-border rounded-lg hover:border-primary/30 hover:bg-card/80 transition-all duration-200 shadow-sm">
+      <div className="text-xs text-primary font-semibold min-w-[60px] bg-primary/10 px-2 py-1 rounded">
         WHERE
       </div>
 
@@ -680,10 +656,10 @@ function FilterRow({
           onUpdate({ type: value, operator: "equals", value: "" })
         }
       >
-        <SelectTrigger className="w-36">
+        <SelectTrigger className="w-36 bg-input border-border text-foreground hover:border-primary/50 focus:border-primary">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-popover border-border">
           <SelectItem value="service">Service Name</SelectItem>
           <SelectItem value="operation">Operation</SelectItem>
           <SelectItem value="duration">Duration (ms)</SelectItem>
@@ -695,10 +671,10 @@ function FilterRow({
         value={filter.operator}
         onValueChange={(value: FilterOperator) => onUpdate({ operator: value })}
       >
-        <SelectTrigger className="w-44">
+        <SelectTrigger className="w-44 bg-input border-border text-foreground hover:border-primary/50 focus:border-primary">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-popover border-border">
           {operatorOptions.map((op) => {
             const operatorLabels = {
               equals: "equals",
@@ -765,7 +741,7 @@ function FilterRow({
               }
               value={filter.value}
               onChange={(e) => onUpdate({ value: e.target.value })}
-              className="flex-1"
+              className="flex-1 bg-input border-border text-foreground placeholder:text-muted-foreground hover:border-primary/50 focus:border-primary"
               type={
                 filter.type === "duration" || filter.type === "status"
                   ? "number"
@@ -788,7 +764,6 @@ function FilterRow({
   );
 }
 
-// Trace Result Card Component
 function TraceResultCard({ trace }: { trace: Trace }) {
   const duration = trace.duration_ns
     ? Math.round(trace.duration_ns / 1000000)
