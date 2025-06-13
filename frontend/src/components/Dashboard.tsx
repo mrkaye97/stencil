@@ -233,8 +233,8 @@ export default function Dashboard() {
                   Advanced Trace Filtering
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Filter traces by duration, service, status, span attributes, and more with our
-                  powerful filtering interface
+                  Filter traces by duration, service, status, span attributes,
+                  and more with our powerful filtering interface
                 </p>
               </div>
             </div>

@@ -1,4 +1,10 @@
-import { useSpans, useSearchTraces, useSpanAttributes, type SearchTracesQuery, type SpanAttribute } from "../lib/api";
+import {
+  useSpans,
+  useSearchTraces,
+  useSpanAttributes,
+  type SearchTracesQuery,
+  type SpanAttribute,
+} from "../lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -49,7 +55,8 @@ interface QueryFilter {
 export default function TracesPage() {
   // Keep spans data for filter options
   const { data: allSpans, isLoading: spansLoading } = useSpans();
-  const { data: spanAttributes, isLoading: spanAttributesLoading } = useSpanAttributes();
+  const { data: spanAttributes, isLoading: spanAttributesLoading } =
+    useSpanAttributes();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<QueryFilter[]>([]);
@@ -110,14 +117,22 @@ export default function TracesPage() {
 
         case "attribute":
           if (filter.attributeKey && filter.value) {
-            // Handle wildcard patterns and multiple values
-            const values = filter.value.split(',').map(v => v.trim()).filter(Boolean);
-            values.forEach(value => {
-              spanAttributeFilters.push({
-                key: filter.attributeKey!,
-                value: value
+            // Handle multiple values separated by commas
+            const values = filter.value
+              .split(",")
+              .map((v) => v.trim())
+              .filter(Boolean);
+
+            // Only handle equality - backend only supports exact matches
+            if (filter.operator === "equals") {
+              values.forEach((value) => {
+                spanAttributeFilters.push({
+                  key: filter.attributeKey!,
+                  value: value,
+                });
               });
-            });
+            }
+            // Note: not_equals would need to be handled client-side if needed
           }
           break;
       }
@@ -309,10 +324,9 @@ export default function TracesPage() {
                   variant="outline"
                   className="bg-accent/10 border-accent/20 text-accent-foreground"
                 >
-                  {filter.type === "attribute" 
+                  {filter.type === "attribute"
                     ? `${filter.attributeKey || "attribute"} ${filter.operator.replace(/_/g, " ")} ${filter.value}`
-                    : `${filter.type} ${filter.operator.replace(/_/g, " ")} ${filter.value}`
-                  }
+                    : `${filter.type} ${filter.operator.replace(/_/g, " ")} ${filter.value}`}
                   <X
                     className="h-3 w-3 ml-1 cursor-pointer hover:text-destructive"
                     onClick={() => removeFilter(filter.id)}
@@ -488,8 +502,6 @@ function FilterRow({
         return [
           { value: "equals", label: "equals" },
           { value: "not_equals", label: "not equals" },
-          { value: "contains", label: "contains" },
-          { value: "not_contains", label: "not contains" },
         ];
       default:
         return [{ value: "equals", label: "equals" }];
@@ -571,29 +583,12 @@ function FilterRow({
 
       case "attribute":
         return (
-          <div className="flex items-center gap-2">
-            <Select
-              value={filter.attributeKey || ""}
-              onValueChange={(value) => onUpdate({ attributeKey: value })}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Select attribute" />
-              </SelectTrigger>
-              <SelectContent>
-                {filterOptions.spanAttributes.map((attr) => (
-                  <SelectItem key={attr} value={attr}>
-                    {attr}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Value (use commas for multiple, * for wildcard)"
-              value={filter.value}
-              onChange={(e) => onUpdate({ value: e.target.value })}
-              className="w-60"
-            />
-          </div>
+          <Input
+            placeholder="Value (use commas for multiple values)"
+            value={filter.value}
+            onChange={(e) => onUpdate({ value: e.target.value })}
+            className="w-60"
+          />
         );
 
       default:
@@ -640,6 +635,25 @@ function FilterRow({
           <SelectItem value="attribute">Attribute</SelectItem>
         </SelectContent>
       </Select>
+
+      {/* For attribute filters, show attribute key selector first */}
+      {filter.type === "attribute" && (
+        <Select
+          value={filter.attributeKey || ""}
+          onValueChange={(value) => onUpdate({ attributeKey: value })}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Select key" />
+          </SelectTrigger>
+          <SelectContent>
+            {filterOptions.spanAttributes.map((attr) => (
+              <SelectItem key={attr} value={attr}>
+                {attr}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       <Select
         value={filter.operator}
