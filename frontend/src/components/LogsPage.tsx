@@ -166,13 +166,13 @@ function LogEntry({ log }: { log: Log }) {
 
   const getSeverityInfo = (severityNumber: number) => {
     if (severityNumber >= 17) {
-      return { color: "bg-red-600", icon: AlertTriangle, label: "ERROR" };
+      return { color: "bg-destructive", icon: AlertTriangle, label: "ERROR" };
     } else if (severityNumber >= 13) {
-      return { color: "bg-yellow-600", icon: AlertTriangle, label: "WARN" };
+      return { color: "bg-chart-4", icon: AlertTriangle, label: "WARN" };
     } else if (severityNumber >= 9) {
-      return { color: "bg-blue-600", icon: Info, label: "INFO" };
+      return { color: "bg-primary", icon: Info, label: "INFO" };
     } else {
-      return { color: "bg-gray-600", icon: Bug, label: "DEBUG" };
+      return { color: "bg-muted", icon: Bug, label: "DEBUG" };
     }
   };
 
@@ -187,13 +187,13 @@ function LogEntry({ log }: { log: Log }) {
     <Collapsible
       open={isExpanded}
       onOpenChange={setIsExpanded}
-      className="rounded border border-gray-700 hover:border-gray-600 transition-colors"
+      className="rounded border border-border hover:border-ring transition-colors"
     >
       <CollapsibleTrigger className="w-full p-3 text-left hover:bg-muted/50">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
             <Badge
-              className={`${severity.color} text-white flex items-center gap-1 text-xs px-2 py-0.5`}
+              className={`${severity.color} text-primary-foreground flex items-center gap-1 text-xs px-2 py-0.5`}
             >
               <SeverityIcon className="h-3 w-3" />
               {log.severity_text || severity.label}

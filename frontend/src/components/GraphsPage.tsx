@@ -50,10 +50,10 @@ export default function GraphsPage() {
     );
 
     const serviceChartData = Object.entries(serviceData).map(
-      ([name, value]) => ({
+      ([name, value], index) => ({
         name,
         value,
-        color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+        color: `hsl(var(--chart-${(index % 5) + 1}))`,
       })
     );
 
@@ -113,26 +113,29 @@ export default function GraphsPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData.durationData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--border))"
+                />
                 <XAxis
                   dataKey="id"
-                  tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                  axisLine={{ stroke: "#6B7280" }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
                 />
                 <YAxis
-                  tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                  axisLine={{ stroke: "#6B7280" }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#1F2937",
-                    border: "1px solid #374151",
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
-                    color: "#F9FAFB",
+                    color: "hsl(var(--popover-foreground))",
                   }}
                   formatter={(value) => [`${value}ms`, "Duration"]}
                 />
-                <Bar dataKey="duration" fill="#3B82F6" />
+                <Bar dataKey="duration" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -164,10 +167,10 @@ export default function GraphsPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#1F2937",
-                    border: "1px solid #374151",
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
-                    color: "#F9FAFB",
+                    color: "hsl(var(--popover-foreground))",
                   }}
                 />
               </PieChart>
@@ -185,30 +188,33 @@ export default function GraphsPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData.hourlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--border))"
+                />
                 <XAxis
                   dataKey="hour"
-                  tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                  axisLine={{ stroke: "#6B7280" }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
                 />
                 <YAxis
-                  tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                  axisLine={{ stroke: "#6B7280" }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#1F2937",
-                    border: "1px solid #374151",
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
-                    color: "#F9FAFB",
+                    color: "hsl(var(--popover-foreground))",
                   }}
                 />
                 <Line
                   type="monotone"
                   dataKey="traces"
-                  stroke="#8B5CF6"
+                  stroke="hsl(var(--chart-5))"
                   strokeWidth={2}
-                  dot={{ fill: "#8B5CF6", strokeWidth: 2, r: 4 }}
+                  dot={{ fill: "hsl(var(--chart-5))", strokeWidth: 2, r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>

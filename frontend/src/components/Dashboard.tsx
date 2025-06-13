@@ -102,12 +102,14 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-gray-200">Recent Traces</CardTitle>
+              <CardTitle className="text-card-foreground">
+                Recent Traces
+              </CardTitle>
               <Button
                 asChild
                 variant="outline"
                 size="sm"
-                className="border-gray-700 text-gray-300"
+                className="border-border text-foreground"
               >
                 <Link to="/traces">View All</Link>
               </Button>
@@ -115,34 +117,34 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {tracesLoading ? (
-              <div className="text-gray-400">Loading traces...</div>
+              <div className="text-muted-foreground">Loading traces...</div>
             ) : recentTraces.length === 0 ? (
-              <div className="text-gray-400">No traces found</div>
+              <div className="text-muted-foreground">No traces found</div>
             ) : (
               <div className="space-y-3">
                 {recentTraces.map((trace) => (
                   <div
                     key={trace.trace_id}
-                    className="flex items-center justify-between p-3  rounded-lg"
+                    className="flex items-center justify-between p-3 rounded-lg"
                   >
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-white truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {trace.trace_id}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {trace.span_count} spans
                       </p>
                     </div>
                     <div className="text-right">
                       <Badge
                         variant="secondary"
-                        className="bg-gray-700 text-gray-300"
+                        className="bg-secondary text-secondary-foreground"
                       >
                         {trace.duration_ns
                           ? `${Math.round(trace.duration_ns / 1000000)}ms`
                           : "N/A"}
                       </Badge>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(trace.start_time), {
                           addSuffix: true,
                         })}
@@ -158,12 +160,14 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-gray-200">Recent Logs</CardTitle>
+              <CardTitle className="text-card-foreground">
+                Recent Logs
+              </CardTitle>
               <Button
                 asChild
                 variant="outline"
                 size="sm"
-                className="border-gray-700 text-gray-300"
+                className="border-border text-foreground"
               >
                 <Link to="/logs">View All</Link>
               </Button>
@@ -171,9 +175,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {logsLoading ? (
-              <div className="text-gray-400">Loading logs...</div>
+              <div className="text-muted-foreground">Loading logs...</div>
             ) : recentLogs.length === 0 ? (
-              <div className="text-gray-400">No logs found</div>
+              <div className="text-muted-foreground">No logs found</div>
             ) : (
               <div className="space-y-3">
                 {recentLogs.map((log) => (
@@ -191,23 +195,23 @@ export default function Dashboard() {
                           log.severity_number >= 17
                             ? ""
                             : log.severity_number >= 13
-                              ? "bg-yellow-600"
-                              : "bg-gray-600"
+                              ? "bg-chart-4"
+                              : "bg-muted"
                         }
                       >
                         {log.severity_text || `Level ${log.severity_number}`}
                       </Badge>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(log.timestamp), {
                           addSuffix: true,
                         })}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-300 truncate">
+                    <p className="text-sm text-foreground truncate">
                       {log.body || "No message"}
                     </p>
                     {log.service_name && (
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {log.service_name}
                       </p>
                     )}
