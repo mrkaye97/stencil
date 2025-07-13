@@ -4,7 +4,6 @@ import Dashboard from './components/Dashboard'
 import TracesPage from './components/TracesPage'
 import TraceDetailPage from './components/TraceDetailPage'
 import LogsPage from './components/LogsPage'
-import GraphsPage from './components/GraphsPage'
 
 const rootRoute = createRootRoute({
   component: Layout,
@@ -34,18 +33,11 @@ const logsRoute = createRoute({
   component: LogsPage,
 })
 
-const graphsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/graphs',
-  component: GraphsPage,
-})
-
 const routeTree = rootRoute.addChildren([
   indexRoute,
   tracesRoute,
   traceDetailRoute,
   logsRoute,
-  graphsRoute,
 ])
 
 export const router = createRouter({ routeTree })

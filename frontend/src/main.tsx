@@ -4,7 +4,6 @@ import { RouterProvider } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router } from "./router";
 import "./styles.css";
-import reportWebVitals from "./reportWebVitals";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,5 +25,3 @@ if (rootElement && !rootElement.innerHTML) {
     </StrictMode>
   );
 }
-
-reportWebVitals();

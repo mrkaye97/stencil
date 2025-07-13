@@ -29,76 +29,78 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <header>
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-2">
           Overview of your observability data
         </p>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
-            <Network className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {stats.totalTraces}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {tracesLoading ? "Loading..." : "Distributed traces"}
-            </p>
-          </CardContent>
-        </Card>
+      <section aria-label="Key metrics">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
+              <Network className="h-4 w-4 text-primary" aria-hidden="true" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+                {stats.totalTraces}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {tracesLoading ? "Loading..." : "Distributed traces"}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
-            <Database className="h-4 w-4 text-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {stats.totalLogs}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {logsLoading ? "Loading..." : "Log entries"}
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
+              <Database className="h-4 w-4 text-accent" aria-hidden="true" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+                {stats.totalLogs}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {logsLoading ? "Loading..." : "Log entries"}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Spans</CardTitle>
-            <Activity className="h-4 w-4 text-chart-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {stats.totalSpans}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {spansLoading ? "Loading..." : "Span operations"}
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Spans</CardTitle>
+              <Activity className="h-4 w-4 text-chart-4" aria-hidden="true" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+                {stats.totalSpans}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {spansLoading ? "Loading..." : "Span operations"}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-            <Clock className="h-4 w-4 text-chart-5" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {stats.avgTraceDuration}ms
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Average trace duration
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
+              <Clock className="h-4 w-4 text-chart-5" aria-hidden="true" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+                {stats.avgTraceDuration}ms
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Average trace duration
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section aria-label="Recent activity" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -219,9 +221,10 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </section>
 
-      <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+      <section aria-label="Quick actions">
+        <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -247,7 +250,8 @@ export default function Dashboard() {
             </Button>
           </div>
         </CardHeader>
-      </Card>
+        </Card>
+      </section>
     </div>
   );
 }

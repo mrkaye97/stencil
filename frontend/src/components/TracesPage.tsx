@@ -261,13 +261,21 @@ export default function TracesPage() {
         <CardContent className="pt-6 space-y-4">
           {/* Basic Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <label htmlFor="trace-search" className="sr-only">
+              Search traces by ID
+            </label>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
+              id="trace-search"
               placeholder="Search traces by ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+              aria-describedby="search-help"
             />
+            <div id="search-help" className="sr-only">
+              Enter a trace ID to filter the results
+            </div>
           </div>
 
           {/* Advanced Filters Toggle */}
@@ -277,13 +285,15 @@ export default function TracesPage() {
               size="sm"
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               className="flex items-center gap-2"
+              aria-expanded={showAdvancedFilters}
+              aria-controls="advanced-filters"
             >
-              <Filter className="h-4 w-4" />
+              <Filter className="h-4 w-4" aria-hidden="true" />
               Advanced Filters
               {showAdvancedFilters ? (
-                <ChevronUp className="h-4 w-4" />
+                <ChevronUp className="h-4 w-4" aria-hidden="true" />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
               )}
             </Button>
 
@@ -338,7 +348,12 @@ export default function TracesPage() {
 
           {/* Advanced Filters */}
           {showAdvancedFilters && (
-            <div className="space-y-3 pt-4 border-t border-border/50">
+            <div 
+              id="advanced-filters"
+              className="space-y-3 pt-4 border-t border-border/50"
+              role="region"
+              aria-label="Advanced filter options"
+            >
               {filters.map((filter) => (
                 <FilterRow
                   key={filter.id}
@@ -353,8 +368,9 @@ export default function TracesPage() {
                 variant="outline"
                 onClick={addFilter}
                 className="w-full border-dashed border-2 hover:border-primary hover:bg-primary/5"
+                aria-label="Add new filter"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                 Add Filter
               </Button>
             </div>
@@ -409,34 +425,48 @@ function TraceCard({ trace }: { trace: Trace }) {
   const status = getStatusInfo();
 
   return (
-    <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-accent/50 hover:bg-card/80 transition-all duration-200">
+    <article 
+      className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-accent/50 hover:bg-card/80 transition-all duration-200"
+      aria-labelledby={`trace-${trace.trace_id}`}
+    >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-3">
-          <h3 className="text-sm font-medium text-foreground truncate font-mono">
+          <h3 
+            id={`trace-${trace.trace_id}`}
+            className="text-sm font-medium text-foreground truncate font-mono"
+          >
             {trace.trace_id}
           </h3>
           <Badge
             variant="outline"
             className="border-border text-secondary-foreground"
+            aria-label={`${trace.span_count} spans in this trace`}
           >
             {trace.span_count} spans
           </Badge>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          <Badge 
+            variant={status.variant}
+            aria-label={`Trace performance status: ${status.label}`}
+          >
+            {status.label}
+          </Badge>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
+            <Clock className="h-3 w-3" aria-hidden="true" />
             <span>Started {timeAgo}</span>
           </div>
           {duration && (
             <div className="flex items-center gap-1">
-              <Activity className="h-3 w-3" />
+              <Activity className="h-3 w-3" aria-hidden="true" />
               <span>{duration}ms duration</span>
             </div>
           )}
           <div className="text-secondary-foreground">
-            {new Date(trace.start_time).toLocaleString()}
+            <time dateTime={trace.start_time}>
+              {new Date(trace.start_time).toLocaleString()}
+            </time>
           </div>
         </div>
       </div>
@@ -447,13 +477,14 @@ function TraceCard({ trace }: { trace: Trace }) {
             variant="outline"
             size="sm"
             className="hover:bg-accent hover:text-accent-foreground hover:border-accent transition-all duration-200"
+            aria-label={`View details for trace ${trace.trace_id}`}
           >
-            <ExternalLink className="h-3 w-3 mr-1" />
+            <ExternalLink className="h-3 w-3 mr-1" aria-hidden="true" />
             View Details
           </Button>
         </Link>
       </div>
-    </div>
+    </article>
   );
 }
 

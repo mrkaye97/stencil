@@ -19,88 +19,100 @@ code {
 }
 
 :root {
-  /* VS Code Material Theme - Deep Ocean */
-  --background: #0F111A;    /* Deep Ocean main background */
-  --foreground: #8F93A2;    /* Deep Ocean primary text */
+  /* Oceanic Theme - User's Preferred Palette */
+  --background: #263238;    /* Oceanic background */
+  --foreground: #EEFFFF;    /* White/Black color for primary text */
 
-  --card: #1F2233;          /* Slightly lighter for cards */
-  --card-foreground: #8F93A2;
+  --card: #32424A;          /* Second background for cards */
+  --card-foreground: #EEFFFF;
 
-  --popover: #191A28;       /* Darker background for popovers */
-  --popover-foreground: #8F93A2;
+  --popover: #2E3C43;       /* Buttons color for popovers */
+  --popover-foreground: #EEFFFF;
 
-  --primary: #82AAFF;       /* Blue - primary actions */
-  --primary-foreground: #0F111A;
+  --primary: #009688;       /* Accent color - teal */
+  --primary-foreground: #FFFFFF;
 
-  --secondary: #2A2D3A;     /* Subtle secondary backgrounds */
-  --secondary-foreground: #8F93A2;
+  --secondary: #425B67;     /* Highlight color for secondary backgrounds */
+  --secondary-foreground: #EEFFFF;
 
-  --muted: #1F2233;         /* Muted backgrounds */
-  --muted-foreground: #717CB4;  /* Lighter text for muted content */
+  --muted: #314549;         /* Active color for muted backgrounds */
+  --muted-foreground: #B0BEC5;  /* Foreground color for muted text */
 
-  --accent: #84FFFF;        /* Cyan accent color */
-  --accent-foreground: #0F111A;
+  --accent: #80CBC4;        /* Links color for accents */
+  --accent-foreground: #263238;
 
-  --destructive: #F07178;   /* Deep Ocean error color */
-  --destructive-foreground: #0F111A;
+  --destructive: #FF5370;   /* Error color */
+  --destructive-foreground: #FFFFFF;
 
-  --border: #2A2D3A;        /* Subtle borders */
-  --input: #1F2233;         /* Input backgrounds */
-  --ring: #82AAFF;          /* Focus rings */
+  --border: #2A373E;        /* Border color */
+  --input: #32424A;         /* Second background for inputs */
+  --ring: #009688;          /* Accent color for focus rings */
 
-  /* Chart colors using Deep Ocean palette */
-  --chart-1: #82AAFF;       /* Blue */
+  /* Chart colors using oceanic palette */
+  --chart-1: #009688;       /* Accent - Teal */
   --chart-2: #C3E88D;       /* Green */
   --chart-3: #C792EA;       /* Purple */
   --chart-4: #FFCB6B;       /* Yellow */
-  --chart-5: #89DDFF;       /* Cyan */
+  --chart-5: #82AAFF;       /* Blue */
 
   --radius: 0.625rem;
 
   /* Sidebar specific colors */
-  --sidebar: #0B0D14;       /* Even darker for sidebar */
-  --sidebar-foreground: #717CB4;
-  --sidebar-primary: #82AAFF;
-  --sidebar-primary-foreground: #0F111A;
-  --sidebar-accent: #1F2233;
-  --sidebar-accent-foreground: #8F93A2;
-  --sidebar-border: #2A2D3A;
-  --sidebar-ring: #82AAFF;
+  --sidebar: #1E272C;       /* Contrast color for sidebar */
+  --sidebar-foreground: #B0BEC5;
+  --sidebar-primary: #009688;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #314549;
+  --sidebar-accent-foreground: #EEFFFF;
+  --sidebar-border: #2A373E;
+  --sidebar-ring: #009688;
+
+  /* Additional semantic colors */
+  --success: #C3E88D;       /* Green color */
+  --warning: #FFCB6B;       /* Yellow color */
+  --info: #82AAFF;          /* Blue color */
+  --selection: #546E7A;     /* Selection background */
+  --disabled: #415967;      /* Disabled color */
 }
 
 .dark {
-  --background: #0F111A;
-  --foreground: #8F93A2;
-  --card: #1F2233;
-  --card-foreground: #8F93A2;
-  --popover: #191A28;
-  --popover-foreground: #8F93A2;
-  --primary: #82AAFF;
-  --primary-foreground: #0F111A;
-  --secondary: #2A2D3A;
-  --secondary-foreground: #8F93A2;
-  --muted: #1F2233;
-  --muted-foreground: #717CB4;
-  --accent: #84FFFF;
-  --accent-foreground: #0F111A;
-  --destructive: #F07178;
-  --destructive-foreground: #0F111A;
-  --border: #2A2D3A;
-  --input: #1F2233;
-  --ring: #82AAFF;
-  --chart-1: #82AAFF;
+  --background: #263238;
+  --foreground: #EEFFFF;
+  --card: #32424A;
+  --card-foreground: #EEFFFF;
+  --popover: #2E3C43;
+  --popover-foreground: #EEFFFF;
+  --primary: #009688;
+  --primary-foreground: #FFFFFF;
+  --secondary: #425B67;
+  --secondary-foreground: #EEFFFF;
+  --muted: #314549;
+  --muted-foreground: #B0BEC5;
+  --accent: #80CBC4;
+  --accent-foreground: #263238;
+  --destructive: #FF5370;
+  --destructive-foreground: #FFFFFF;
+  --border: #2A373E;
+  --input: #32424A;
+  --ring: #009688;
+  --chart-1: #009688;
   --chart-2: #C3E88D;
   --chart-3: #C792EA;
   --chart-4: #FFCB6B;
-  --chart-5: #89DDFF;
-  --sidebar: #0B0D14;
-  --sidebar-foreground: #717CB4;
-  --sidebar-primary: #82AAFF;
-  --sidebar-primary-foreground: #0F111A;
-  --sidebar-accent: #1F2233;
-  --sidebar-accent-foreground: #8F93A2;
-  --sidebar-border: #2A2D3A;
-  --sidebar-ring: #82AAFF;
+  --chart-5: #82AAFF;
+  --sidebar: #1E272C;
+  --sidebar-foreground: #B0BEC5;
+  --sidebar-primary: #009688;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #314549;
+  --sidebar-accent-foreground: #EEFFFF;
+  --sidebar-border: #2A373E;
+  --sidebar-ring: #009688;
+  --success: #C3E88D;
+  --warning: #FFCB6B;
+  --info: #82AAFF;
+  --selection: #546E7A;
+  --disabled: #415967;
 }
 
 @theme inline {
@@ -219,5 +231,67 @@ code {
 
   [data-slot="card"]:hover {
     box-shadow: 0 8px 25px -5px hsl(var(--ring) / 0.1);
+  }
+
+  /* Accessibility improvements */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --border: #ffffff50;
+      --ring: #ffffff;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Focus indicators for better keyboard navigation */
+  [data-slot="button"]:focus-visible,
+  [data-slot="input"]:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Improved selection colors */
+  ::selection {
+    background-color: hsl(var(--selection));
+    color: hsl(var(--foreground));
+  }
+
+  /* Better loading indicator */
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 }

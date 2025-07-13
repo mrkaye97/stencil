@@ -3,7 +3,6 @@ import type { Trace, Span, Log } from '../types/api';
 
 const API_BASE_URL = 'http://localhost:8080';
 
-// Search query interface matching backend
 export interface SpanAttribute {
   key: string;
   value: string;
@@ -135,8 +134,8 @@ export const useSpanAttributes = () => {
   return useQuery({
     queryKey: ['span-attributes'],
     queryFn: fetchSpanAttributes,
-    refetchInterval: 60000, // Refresh every minute
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 };
 
@@ -145,6 +144,6 @@ export const useSearchTraces = (query: SearchTracesQuery, enabled = true) => {
     queryKey: ['search-traces', query],
     queryFn: () => fetchSearchTraces(query),
     enabled: enabled,
-    staleTime: 10000, // Consider data fresh for 10 seconds
+    staleTime: 10000,
   });
 };
