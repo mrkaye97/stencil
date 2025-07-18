@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Trace, Span, Log } from "../types/api";
 import type { TimeSeriesValue, QuerySpec } from "../types/timeseries";
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_STENCIL_API_URL || "http://localhost:8080";
 
 export interface SpanAttribute {
   key: string;

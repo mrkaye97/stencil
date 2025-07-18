@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   console.log("Vite environment variables:", env);
 
   return {
-    base: env.VITE_BASE_PATH || "/",
+    base: env.VITE_STENCIL_BASE_PATH || "/",
     plugins: [
       TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
       react(),
@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
-      allowedHosts: ["localhost", env.VITE_HOST].filter(
+      allowedHosts: ["localhost", env.VITE_STENCIL_HOST].filter(
         (host): host is string => Boolean(host),
       ),
     },
