@@ -24,6 +24,7 @@ pub enum DbSpanKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum SpanAttributeValue {
     String(String),
     Int(i64),
