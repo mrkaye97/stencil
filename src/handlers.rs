@@ -562,12 +562,7 @@ pub async fn query_handler(
     let group_by_clause = build_group_by(&query.group);
 
     let stmt = format!(
-        "
-            {select_stmt}
-            FROM span
-            {group_by_clause}
-            ORDER BY time_bin
-    ",
+        "{select_stmt} FROM span {group_by_clause} ORDER BY time_bin",
         select_stmt = select_statement,
         group_by_clause = group_by_clause,
     );
