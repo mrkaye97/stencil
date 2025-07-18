@@ -97,7 +97,7 @@ pub async fn insert_logs_handler(
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SpanAttribute {
     pub key: String,
-    pub value: String,
+    pub value: SpanAttributeValue,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -107,7 +107,7 @@ pub struct SearchTracesQuery {
     min_duration_ns: Option<i64>,
     max_duration_ns: Option<i64>,
     status_code: Option<i32>,
-    span_attributes: Option<Vec<SpanAttribute>>,
+    span_attributes: Option<String>, // Change to String for JSON parsing
     offset: Option<i64>,
     limit: Option<i64>,
 }
@@ -118,10 +118,19 @@ pub async fn search_traces_handler(
 ) -> Result<Json<Vec<WriteableTrace>>, StatusCode> {
     let mut span_attribute_names: Vec<String> = Vec::new();
     let mut span_attribute_values: Vec<String> = Vec::new();
-    if let Some(attrs) = &query.span_attributes {
+    if let Some(attrs_json) = &query.span_attributes {
+        let attrs: Vec<SpanAttribute> =
+            serde_json::from_str(attrs_json).map_err(|_| StatusCode::BAD_REQUEST)?;
+
         for attr in attrs {
             span_attribute_names.push(attr.key.clone());
-            span_attribute_values.push(attr.value.clone());
+            let value_str = match &attr.value {
+                SpanAttributeValue::String(s) => s.clone(),
+                SpanAttributeValue::Int(i) => i.to_string(),
+                SpanAttributeValue::Float(f) => f.to_string(),
+                SpanAttributeValue::Bool(b) => b.to_string(),
+            };
+            span_attribute_values.push(value_str);
         }
     }
 
@@ -151,7 +160,10 @@ pub async fn search_traces_handler(
                 $6::TEXT[] IS NULL OR
                 NOT EXISTS (
                     SELECT 1 FROM attrs
-                    WHERE NOT (s.attributes ->> attrs.key = attrs.value)
+                    WHERE NOT (
+                        s.attributes ? attrs.key AND
+                        (s.attributes ->> attrs.key) = attrs.value
+                    )
                 )
             )
         ORDER BY started_at DESC
