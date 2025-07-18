@@ -1,4 +1,5 @@
 use core::panic;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::body::Bytes;
@@ -17,12 +18,12 @@ use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
 mod crud;
 
 pub use crud::{
-    flatten_logs_and_attrs, flatten_spans_and_attrs, insert_log_attributes, insert_logs,
-    insert_span_attributes, insert_spans, insert_traces,
+    flatten_logs_and_attrs, flatten_spans, insert_log_attributes, insert_logs, insert_spans,
+    insert_traces,
 };
 use time::OffsetDateTime;
 
-use crate::handlers::crud::{WriteableLog, WriteableSpan, WriteableTrace};
+use crate::handlers::crud::{SpanAttributeValue, WriteableLog, WriteableSpan, WriteableTrace};
 
 pub async fn insert_traces_handler(
     State(pool): State<Arc<PgPool>>,
@@ -47,16 +48,12 @@ pub async fn insert_traces_handler(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let (traces, spans, span_attributes) =
-        flatten_spans_and_attrs(&payload).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let (traces, spans) = flatten_spans(&payload).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     insert_traces(&traces, &mut tx)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     insert_spans(&spans, &mut tx)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    insert_span_attributes(&span_attributes, &mut tx)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -151,12 +148,10 @@ pub async fn search_traces_handler(
             AND ($4::BIGINT IS NULL OR t.duration_ns <= $4::BIGINT)
             AND ($5::INTEGER IS NULL OR s.status_code = $5::INTEGER)
             AND (
-                CARDINALITY($6::TEXT[]) = 0
-                OR EXISTS (
-                    SELECT 1
-                    FROM span_attribute sa
-                    JOIN attrs a ON (sa.key, sa.value) = (a.key, a.value)
-                    WHERE sa.span_id = s.id
+                $6::TEXT[] IS NULL OR
+                NOT EXISTS (
+                    SELECT 1 FROM attrs
+                    WHERE NOT (s.attributes ->> attrs.key = attrs.value)
                 )
             )
         ORDER BY started_at DESC
@@ -233,6 +228,31 @@ pub async fn get_trace_handler(
     Ok(Json(trace))
 }
 
+fn json_to_span_attributes(json: Option<Value>) -> HashMap<String, SpanAttributeValue> {
+    if let Some(Value::Object(map)) = json {
+        map.into_iter()
+            .map(|(k, v)| {
+                let value = match v {
+                    Value::String(s) => SpanAttributeValue::String(s),
+                    Value::Number(n) => {
+                        if let Some(i) = n.as_i64() {
+                            SpanAttributeValue::Int(i)
+                        } else if let Some(f) = n.as_f64() {
+                            SpanAttributeValue::Float(f)
+                        } else {
+                            SpanAttributeValue::String(n.to_string())
+                        }
+                    }
+                    _ => SpanAttributeValue::String(v.to_string()),
+                };
+                (k, value)
+            })
+            .collect()
+    } else {
+        HashMap::new()
+    }
+}
+
 pub async fn list_spans_handler(
     State(pool): State<Arc<PgPool>>,
 ) -> Result<Json<Vec<WriteableSpan>>, StatusCode> {
@@ -249,7 +269,8 @@ pub async fn list_spans_handler(
             status_code,
             status_message,
             service_name,
-            instrumentation_library
+            instrumentation_library,
+            attributes
         FROM span
         ORDER BY started_at DESC
         LIMIT 100
@@ -274,6 +295,7 @@ pub async fn list_spans_handler(
             span_kind: crud::DbSpanKind::Unspecified,
             instrumentation_library: record.instrumentation_library,
             service_name: record.service_name,
+            attributes: json_to_span_attributes(record.attributes),
         })
         .collect();
 
@@ -341,7 +363,8 @@ pub async fn get_trace_spans_handler(
             status_code,
             status_message,
             instrumentation_library,
-            service_name
+            service_name,
+            attributes
         FROM span
         WHERE trace_id = $1
         ORDER BY started_at ASC
@@ -367,6 +390,7 @@ pub async fn get_trace_spans_handler(
             span_kind: crud::DbSpanKind::Unspecified,
             instrumentation_library: record.instrumentation_library,
             service_name: record.service_name,
+            attributes: json_to_span_attributes(record.attributes),
         })
         .collect();
 
@@ -378,16 +402,26 @@ pub async fn list_span_attributes_handler(
 ) -> Result<Json<Vec<String>>, StatusCode> {
     let records = sqlx::query!(
         r#"
+        WITH attrs AS (
+            SELECT t.key
+            FROM span, LATERAL JSONB_EACH(attributes) AS t(key, value)
+            WHERE attributes IS NOT NULL
+        )
+
         SELECT DISTINCT key
-        FROM span_attribute
-        ORDER BY key
+        FROM attrs
+        WHERE key IS NOT NULL
+        ORDER BY KEY
         "#,
     )
     .fetch_all(&*pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let attributes: Vec<String> = records.into_iter().map(|record| record.key).collect();
+    let attributes: Vec<String> = records
+        .into_iter()
+        .filter_map(|record| record.key)
+        .collect();
 
     Ok(Json(attributes))
 }

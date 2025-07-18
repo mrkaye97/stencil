@@ -23,6 +23,14 @@ pub enum DbSpanKind {
     Consumer = 5,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SpanAttributeValue {
+    String(String),
+    Int(i64),
+    Float(f64),
+    Bool(bool),
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WriteableSpan {
     pub span_id: String,
@@ -39,6 +47,7 @@ pub struct WriteableSpan {
     pub span_kind: DbSpanKind,
     pub instrumentation_library: Option<String>,
     pub service_name: Option<String>,
+    pub attributes: HashMap<String, SpanAttributeValue>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -325,7 +334,7 @@ pub async fn insert_spans(
     let mut query_builder = QueryBuilder::new(
         "INSERT INTO span (
                     id, trace_id, parent_span_id, operation_name,
-                    started_at, ended_at, duration_ns, status_code, status_message, kind, instrumentation_library, service_name
+                    started_at, ended_at, duration_ns, status_code, status_message, kind, instrumentation_library, service_name, attributes
                 ) ",
     );
 
@@ -442,16 +451,9 @@ pub async fn insert_log_attributes(
     Ok(())
 }
 
-pub fn flatten_spans_and_attrs(
+pub fn flatten_spans(
     payload: &ExportTraceServiceRequest,
-) -> Result<
-    (
-        Vec<WriteableTrace>,
-        Vec<WriteableSpan>,
-        Vec<WriteableSpanAttribute>,
-    ),
-    tonic::Status,
-> {
+) -> Result<(Vec<WriteableTrace>, Vec<WriteableSpan>), tonic::Status> {
     let mut trace_id_to_info = HashMap::new();
 
     for resource_span in payload.resource_spans.iter() {
@@ -501,82 +503,72 @@ pub fn flatten_spans_and_attrs(
         traces.push(trace);
     }
 
-    let spans_and_attrs: Result<Vec<(WriteableSpan, Vec<WriteableSpanAttribute>)>, tonic::Status> =
-        payload
-            .resource_spans
-            .iter()
-            .flat_map(|resource_span| {
-                resource_span
-                    .scope_spans
-                    .iter()
-                    .flat_map(move |scope_span| {
-                        let instrumentation_library = extract_instrumentation_library(scope_span);
-                        let service_name = extract_service_name(&resource_span.resource);
+    let spans: Result<Vec<WriteableSpan>, tonic::Status> = payload
+        .resource_spans
+        .iter()
+        .flat_map(|resource_span| {
+            resource_span
+                .scope_spans
+                .iter()
+                .flat_map(move |scope_span| {
+                    let instrumentation_library = extract_instrumentation_library(scope_span);
+                    let service_name = extract_service_name(&resource_span.resource);
 
-                        scope_span.spans.iter().map(move |span| {
-                            let trace_id = span.trace_id_hex().map_err(|e| {
-                                tonic::Status::invalid_argument(format!("Invalid trace ID: {}", e))
-                            })?;
-                            let span_id = span.span_id_hex().map_err(|e| {
-                                tonic::Status::invalid_argument(format!("Invalid span ID: {}", e))
-                            })?;
-                            let start_time = span.start_time().map_err(|e| {
-                                tonic::Status::invalid_argument(format!(
-                                    "Invalid start time: {}",
-                                    e
-                                ))
-                            })?;
-                            let end_time = span.end_time().map_err(|e| {
-                                tonic::Status::invalid_argument(format!("Invalid end time: {}", e))
-                            })?;
-                            let duration_ns = span.duration_ns().map_err(|e| {
-                                tonic::Status::invalid_argument(format!("Invalid duration: {}", e))
-                            })?;
+                    scope_span.spans.iter().map(move |span| {
+                        let trace_id = span.trace_id_hex().map_err(|e| {
+                            tonic::Status::invalid_argument(format!("Invalid trace ID: {}", e))
+                        })?;
+                        let span_id = span.span_id_hex().map_err(|e| {
+                            tonic::Status::invalid_argument(format!("Invalid span ID: {}", e))
+                        })?;
+                        let start_time = span.start_time().map_err(|e| {
+                            tonic::Status::invalid_argument(format!("Invalid start time: {}", e))
+                        })?;
+                        let end_time = span.end_time().map_err(|e| {
+                            tonic::Status::invalid_argument(format!("Invalid end time: {}", e))
+                        })?;
+                        let duration_ns = span.duration_ns().map_err(|e| {
+                            tonic::Status::invalid_argument(format!("Invalid duration: {}", e))
+                        })?;
 
-                            let writeable_span = WriteableSpan {
-                                span_id: span_id.clone(),
-                                trace_id,
-                                parent_span_id: span.parent_span_id_hex(),
-                                operation_name: span.name.clone(),
-                                start_time,
-                                end_time,
-                                duration_ns,
-                                status_code: span.status_code(),
-                                status_message: span.status_message(),
-                                span_kind: span.span_kind_to_db(),
-                                instrumentation_library: instrumentation_library.clone(),
-                                service_name: service_name.clone(),
-                            };
+                        let attributes: HashMap<String, SpanAttributeValue> = span
+                            .attributes_map()
+                            .into_iter()
+                            .map(|(k, v)| {
+                                let value = match v.parse::<i32>() {
+                                    Ok(i) => SpanAttributeValue::Int(i.into()),
+                                    Err(_) => match v.parse::<f64>() {
+                                        Ok(f) => SpanAttributeValue::Float(f),
+                                        Err(_) => SpanAttributeValue::String(v),
+                                    },
+                                };
+                                (k, value)
+                            })
+                            .collect();
 
-                            let attributes: Vec<WriteableSpanAttribute> = span
-                                .attributes_map()
-                                .into_iter()
-                                .map(|(k, v)| WriteableSpanAttribute {
-                                    span_id: span_id.clone(),
-                                    key: k,
-                                    value: v,
-                                })
-                                .collect();
+                        let writeable_span = WriteableSpan {
+                            span_id: span_id.clone(),
+                            trace_id,
+                            parent_span_id: span.parent_span_id_hex(),
+                            operation_name: span.name.clone(),
+                            start_time,
+                            end_time,
+                            duration_ns,
+                            status_code: span.status_code(),
+                            status_message: span.status_message(),
+                            span_kind: span.span_kind_to_db(),
+                            instrumentation_library: instrumentation_library.clone(),
+                            service_name: service_name.clone(),
+                            attributes: attributes.clone(),
+                        };
 
-                            Ok((writeable_span, attributes))
-                        })
+                        Ok(writeable_span)
                     })
-            })
-            .collect();
+                })
+        })
+        .collect();
 
-    let spans_and_attrs = spans_and_attrs?;
-
-    let spans = spans_and_attrs
-        .iter()
-        .map(|(span, _)| span.clone())
-        .collect::<Vec<WriteableSpan>>();
-
-    let span_attributes = spans_and_attrs
-        .iter()
-        .flat_map(|(_, attrs)| attrs.iter().cloned())
-        .collect::<Vec<WriteableSpanAttribute>>();
-
-    Ok((traces, spans, span_attributes))
+    Ok((traces, spans?))
 }
 
 pub fn flatten_logs_and_attrs(
