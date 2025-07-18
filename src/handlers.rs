@@ -424,7 +424,7 @@ pub struct Filter {
 pub struct QueryQuery {
     aggregate: Aggregate,
     filters: Option<Vec<Filter>>,
-    groupings: Option<Vec<String>>,
+    group: Option<String>,
     time_bin: Option<TimeBinQuery>,
 }
 
@@ -495,6 +495,46 @@ fn agg_to_select(agg: &Aggregate) -> SelectAgg {
     }
 }
 
+fn build_select(
+    agg: &SelectAgg,
+    time_bin: &TimeBinQuery,
+    grouping_column: &Option<String>,
+) -> String {
+    let time_bin_sql = time_bin_to_sql(time_bin);
+
+    let mut query = format!(
+        "
+            SELECT
+                {time_bin_sql} AS time_bin,
+    ",
+        time_bin_sql = time_bin_sql,
+    );
+
+    if grouping_column.is_some() {
+        let col = grouping_column.as_ref().unwrap();
+
+        query.push_str(&format!("\n{col} AS group, "));
+    }
+
+    query.push_str(&format!(
+        "\n{agg_select}::DOUBLE PRECISION AS value",
+        agg_select = agg.select
+    ));
+
+    query
+}
+
+fn build_group_by(grouping_column: &Option<String>) -> String {
+    let mut clause = "\nGROUP BY time_bin".to_string();
+
+    if grouping_column.is_some() {
+        let col = grouping_column.as_ref().unwrap();
+        clause.push_str(&format!(", {}", col));
+    }
+
+    clause
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TimeSeriesValue {
     #[serde(with = "time::serde::rfc3339")]
@@ -518,22 +558,21 @@ pub async fn query_handler(
         value: 1,
     });
 
-    let time_bin_sql = time_bin_to_sql(&time_bin_input);
+    let select_statement = build_select(&select, &time_bin_input, &query.group);
+    let group_by_clause = build_group_by(&query.group);
 
-    let query = format!(
+    let stmt = format!(
         "
-            SELECT
-            {time_bin_sql} AS time_bin,
-            {select}::DOUBLE PRECISION AS value
+            {select_stmt}
             FROM span
-            GROUP BY time_bin
+            {group_by_clause}
             ORDER BY time_bin
     ",
-        time_bin_sql = time_bin_sql,
-        select = select.select
+        select_stmt = select_statement,
+        group_by_clause = group_by_clause,
     );
 
-    let results = sqlx::query(&query)
+    let results = sqlx::query(&stmt)
         .fetch_all(&*pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -543,11 +582,16 @@ pub async fn query_handler(
     for r in results {
         let time_bin = r.get::<OffsetDateTime, _>("time_bin");
         let value: f64 = r.get("value");
+        let mut group_value: Option<String> = None;
+
+        if query.group.is_some() {
+            group_value = r.get("group");
+        }
 
         time_series_values.push(TimeSeriesValue {
             end_time: time_bin,
             value,
-            group: None,
+            group: group_value,
         });
     }
 
