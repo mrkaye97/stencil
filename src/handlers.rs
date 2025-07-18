@@ -1,3 +1,4 @@
+use core::panic;
 use std::sync::Arc;
 
 use axum::body::Bytes;
@@ -9,7 +10,7 @@ use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sqlx::{PgPool, Row};
+use sqlx::{Execute, PgPool, Postgres, QueryBuilder, Row};
 
 use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
 
@@ -421,7 +422,7 @@ pub struct Filter {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct QueryQuery {
+pub struct QuerySpec {
     aggregate: Aggregate,
     filters: Option<Vec<Filter>>,
     group: Option<String>,
@@ -436,19 +437,19 @@ struct SelectAgg {
 fn time_bin_to_sql(input: &TimeBinQuery) -> String {
     match input.bin {
         TimeBin::Second => format!(
-            "DATE_BIN(INTERVAL '{} second', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            "DATE_BIN(INTERVAL '{} second', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ) AS time_bin,",
             input.value
         ),
         TimeBin::Minute => format!(
-            "DATE_BIN(INTERVAL '{} minute', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            "DATE_BIN(INTERVAL '{} minute', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ) AS time_bin,",
             input.value
         ),
         TimeBin::Hour => format!(
-            "DATE_BIN(INTERVAL '{} hour', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            "DATE_BIN(INTERVAL '{} hour', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ) AS time_bin,",
             input.value
         ),
         TimeBin::Day => format!(
-            "DATE_BIN(INTERVAL '{} day', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            "DATE_BIN(INTERVAL '{} day', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ) AS time_bin,",
             input.value
         ),
     }
@@ -495,46 +496,6 @@ fn agg_to_select(agg: &Aggregate) -> SelectAgg {
     }
 }
 
-fn build_select(
-    agg: &SelectAgg,
-    time_bin: &TimeBinQuery,
-    grouping_column: &Option<String>,
-) -> String {
-    let time_bin_sql = time_bin_to_sql(time_bin);
-
-    let mut query = format!(
-        "
-            SELECT
-                {time_bin_sql} AS time_bin,
-    ",
-        time_bin_sql = time_bin_sql,
-    );
-
-    if grouping_column.is_some() {
-        let col = grouping_column.as_ref().unwrap();
-
-        query.push_str(&format!("\n{col} AS group, "));
-    }
-
-    query.push_str(&format!(
-        "\n{agg_select}::DOUBLE PRECISION AS value",
-        agg_select = agg.select
-    ));
-
-    query
-}
-
-fn build_group_by(grouping_column: &Option<String>) -> String {
-    let mut clause = "\nGROUP BY time_bin".to_string();
-
-    if grouping_column.is_some() {
-        let col = grouping_column.as_ref().unwrap();
-        clause.push_str(&format!(", {}", col));
-    }
-
-    clause
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TimeSeriesValue {
     #[serde(with = "time::serde::rfc3339")]
@@ -543,31 +504,94 @@ pub struct TimeSeriesValue {
     pub group: Option<String>,
 }
 
+fn build_query<'a>(params: &'a QuerySpec, agg: &'a SelectAgg) -> QueryBuilder<'a, Postgres> {
+    let allowed_columns = vec![
+        "trace_id",
+        "operation_name",
+        "started_at",
+        "ended_at",
+        "duration_ns",
+        "status_code",
+        "kind",
+        "instrumentation_library",
+        "service_name",
+    ];
+
+    let mut builder: QueryBuilder<Postgres> = QueryBuilder::new("SELECT ");
+
+    let time_bin = params.time_bin.as_ref().unwrap_or(&TimeBinQuery {
+        bin: TimeBin::Minute,
+        value: 1,
+    });
+    let time_bin_sql = time_bin_to_sql(time_bin);
+
+    builder.push(time_bin_sql.as_str());
+
+    if params.group.is_some() {
+        let col = params.group.as_ref().unwrap();
+
+        if col.is_empty() || !allowed_columns.contains(&col.as_str()) {
+            panic!("Invalid grouping column: {}", col);
+        }
+
+        builder.push(&format!("\n{col} AS group, "));
+    }
+
+    builder.push(&format!(
+        "\n{agg_select}::DOUBLE PRECISION AS value",
+        agg_select = agg.select
+    ));
+
+    builder.push("\nFROM span ");
+
+    if let Some(filters) = &params.filters {
+        builder.push("\nWHERE ");
+        let mut i = 1;
+
+        for filter in filters {
+            builder.push(&format!("{} = ${}", filter.column, filter.value));
+
+            if i < filters.len() {
+                builder.push(" AND ");
+            }
+
+            i += 1;
+        }
+    }
+
+    builder.push("\nGROUP BY time_bin");
+
+    if params.group.is_some() {
+        let col = params.group.as_ref().unwrap();
+
+        if col.is_empty() || !allowed_columns.contains(&col.as_str()) {
+            panic!("Invalid grouping column: {}", col);
+        }
+
+        builder.push(&format!(", {}", col));
+    }
+
+    builder.push("\nORDER BY time_bin");
+
+    builder
+}
+
 pub async fn query_handler(
     State(pool): State<Arc<PgPool>>,
-    Json(query): Json<QueryQuery>,
+    Json(query_spec): Json<QuerySpec>,
 ) -> Result<Json<Vec<TimeSeriesValue>>, StatusCode> {
-    let select = agg_to_select(&query.aggregate);
+    let select = agg_to_select(&query_spec.clone().aggregate);
 
     if !select.ok {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let time_bin_input = query.time_bin.unwrap_or(TimeBinQuery {
-        bin: TimeBin::Minute,
-        value: 1,
-    });
+    let mut builder = build_query(&query_spec, &select);
+    let query = builder.build();
 
-    let select_statement = build_select(&select, &time_bin_input, &query.group);
-    let group_by_clause = build_group_by(&query.group);
+    println!("Executing query: {}", query.sql());
 
-    let stmt = format!(
-        "{select_stmt} FROM span {group_by_clause} ORDER BY time_bin",
-        select_stmt = select_statement,
-        group_by_clause = group_by_clause,
-    );
-
-    let results = sqlx::query(&stmt)
+    let results = query
         .fetch_all(&*pool)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -579,7 +603,7 @@ pub async fn query_handler(
         let value: f64 = r.get("value");
         let mut group_value: Option<String> = None;
 
-        if query.group.is_some() {
+        if query_spec.group.is_some() {
             group_value = r.get("group");
         }
 
