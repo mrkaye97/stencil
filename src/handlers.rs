@@ -427,7 +427,7 @@ pub async fn list_span_attributes_handler(
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum Aggregate {
+pub enum AggregateType {
     Count,
     Sum(String),
     Avg(String),
@@ -456,16 +456,23 @@ pub struct Filter {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum AggregateSource {
+    SpanColumn,
+    SpanAttribute,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Aggregate {
+    pub agg_type: AggregateType,
+    pub source: AggregateSource,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct QuerySpec {
     aggregate: Aggregate,
     filters: Option<Vec<Filter>>,
     group: Option<String>,
     time_bin: Option<TimeBinQuery>,
-}
-
-struct SelectAgg {
-    pub ok: bool,
-    pub select: String,
 }
 
 fn time_bin_to_sql(input: &TimeBinQuery) -> String {
@@ -489,47 +496,6 @@ fn time_bin_to_sql(input: &TimeBinQuery) -> String {
     }
 }
 
-fn agg_to_select(agg: &Aggregate) -> SelectAgg {
-    let allowed_columns = vec![
-        "trace_id",
-        "operation_name",
-        "started_at",
-        "ended_at",
-        "duration_ns",
-        "status_code",
-        "kind",
-        "instrumentation_library",
-        "service_name",
-    ];
-
-    fn is_ok(column: &str, allowed_columns: &[&str]) -> bool {
-        allowed_columns.contains(&column)
-    }
-
-    match agg {
-        Aggregate::Count => SelectAgg {
-            ok: true,
-            select: "COUNT(*)".to_string(),
-        },
-        Aggregate::Sum(column) => SelectAgg {
-            ok: is_ok(&column, &allowed_columns),
-            select: format!("SUM({})", column),
-        },
-        Aggregate::Avg(column) => SelectAgg {
-            ok: is_ok(&column, &allowed_columns),
-            select: format!("AVG({})", column),
-        },
-        Aggregate::Min(column) => SelectAgg {
-            ok: is_ok(&column, &allowed_columns),
-            select: format!("MIN({})", column),
-        },
-        Aggregate::Max(column) => SelectAgg {
-            ok: is_ok(&column, &allowed_columns),
-            select: format!("MAX({})", column),
-        },
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TimeSeriesValue {
     #[serde(with = "time::serde::rfc3339")]
@@ -538,7 +504,7 @@ pub struct TimeSeriesValue {
     pub group: Option<String>,
 }
 
-fn build_query<'a>(params: &'a QuerySpec, agg: &'a SelectAgg) -> QueryBuilder<'a, Postgres> {
+fn build_query<'a>(params: &'a QuerySpec) -> QueryBuilder<'a, Postgres> {
     let allowed_columns = vec![
         "trace_id",
         "operation_name",
@@ -571,10 +537,65 @@ fn build_query<'a>(params: &'a QuerySpec, agg: &'a SelectAgg) -> QueryBuilder<'a
         builder.push(&format!("\n{col} AS group, "));
     }
 
-    builder.push(&format!(
-        "\n{agg_select}::DOUBLE PRECISION AS value",
-        agg_select = agg.select
-    ));
+    match &params.aggregate.source {
+        AggregateSource::SpanColumn => match &params.aggregate.agg_type {
+            AggregateType::Count => {
+                builder.push("\nCOUNT(*)::DOUBLE PRECISION AS value");
+            }
+            AggregateType::Sum(column) => {
+                if column.is_empty() || !allowed_columns.contains(&column.as_str()) {
+                    panic!("Invalid aggregate column: {}", column);
+                }
+
+                builder.push(&format!("\nSUM({})::DOUBLE PRECISION AS value", column));
+            }
+            AggregateType::Avg(column) => {
+                if column.is_empty() || !allowed_columns.contains(&column.as_str()) {
+                    panic!("Invalid aggregate column: {}", column);
+                }
+                builder.push(&format!("\nAVG({})::DOUBLE PRECISION AS value", column));
+            }
+            AggregateType::Min(column) => {
+                if column.is_empty() || !allowed_columns.contains(&column.as_str()) {
+                    panic!("Invalid aggregate column: {}", column);
+                }
+                builder.push(&format!("\nMIN({})::DOUBLE PRECISION AS value", column));
+            }
+            AggregateType::Max(column) => {
+                if column.is_empty() || !allowed_columns.contains(&column.as_str()) {
+                    panic!("Invalid aggregate column: {}", column);
+                }
+                builder.push(&format!("\nMAX({})::DOUBLE PRECISION AS value", column));
+            }
+        },
+        AggregateSource::SpanAttribute => {
+            match &params.aggregate.agg_type {
+                AggregateType::Count => {
+                    builder.push("COUNT(*)::DOUBLE PRECISION AS value");
+                }
+                AggregateType::Sum(key) => {
+                    builder.push("SUM((attributes ->> ");
+                    builder.push_bind(key);
+                    builder.push(")::DOUBLE PRECISION AS value");
+                }
+                AggregateType::Avg(key) => {
+                    builder.push("AVG((attributes ->> ");
+                    builder.push_bind(key);
+                    builder.push(")::DOUBLE PRECISION AS value");
+                }
+                AggregateType::Min(key) => {
+                    builder.push("MIN(attributes ->> ");
+                    builder.push_bind(key);
+                    builder.push(")::DOUBLE PRECISION AS value");
+                }
+                AggregateType::Max(key) => {
+                    builder.push("MAX(attributes ->> ");
+                    builder.push_bind(key);
+                    builder.push(")::DOUBLE PRECISION AS value");
+                }
+            };
+        }
+    }
 
     builder.push("\nFROM span ");
 
@@ -629,13 +650,7 @@ pub async fn query_handler(
     State(pool): State<Arc<PgPool>>,
     Json(query_spec): Json<QuerySpec>,
 ) -> Result<Json<Vec<TimeSeriesValue>>, StatusCode> {
-    let select = agg_to_select(&query_spec.clone().aggregate);
-
-    if !select.ok {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    let mut builder = build_query(&query_spec, &select);
+    let mut builder = build_query(&query_spec);
     let query = builder.build();
 
     let results = query
