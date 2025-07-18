@@ -61,13 +61,6 @@ pub struct WriteableTrace {
     pub span_count: i32,
 }
 
-#[derive(Clone, Debug)]
-pub struct WriteableSpanAttribute {
-    span_id: String,
-    key: String,
-    value: String,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WriteableLog {
     pub log_id: uuid::Uuid,
@@ -351,32 +344,6 @@ pub async fn insert_spans(
             .push_bind(span.span_kind.clone())
             .push_bind(span.instrumentation_library.clone())
             .push_bind(span.service_name.clone());
-    });
-
-    let query = query_builder.build();
-
-    query
-        .execute(&mut **tx)
-        .await
-        .map_err(|e| tonic::Status::internal(format!("Database error: {}", e)))?;
-
-    Ok(())
-}
-
-pub async fn insert_span_attributes(
-    span_attributes: &Vec<WriteableSpanAttribute>,
-    tx: &mut sqlx::Transaction<'_, Postgres>,
-) -> Result<(), tonic::Status> {
-    if span_attributes.is_empty() {
-        return Ok(());
-    }
-
-    let mut query_builder = QueryBuilder::new("INSERT INTO span_attribute (span_id, key, value) ");
-
-    query_builder.push_values(span_attributes, |mut b, attr| {
-        b.push_bind(attr.span_id.clone())
-            .push_bind(attr.key.clone())
-            .push_bind(attr.value.clone());
     });
 
     let query = query_builder.build();
