@@ -455,7 +455,7 @@ pub struct Filter {
     pub value: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum AggregateSource {
     SpanColumn,
     SpanAttribute,
@@ -616,6 +616,29 @@ fn build_query<'a>(params: &'a QuerySpec) -> QueryBuilder<'a, Postgres> {
             }
 
             i += 1;
+        }
+
+        if &params.aggregate.source == &AggregateSource::SpanAttribute {
+            if !filters.is_empty() {
+                builder.push(" AND ");
+            }
+
+            builder.push("attributes IS NOT NULL");
+
+            if !filters.is_empty() {
+                builder.push(" AND ");
+            }
+
+            match &params.aggregate.agg_type {
+                AggregateType::Sum(key)
+                | AggregateType::Avg(key)
+                | AggregateType::Min(key)
+                | AggregateType::Max(key) => {
+                    builder.push("attributes ? ");
+                    builder.push_bind(key.as_str());
+                }
+                _ => {}
+            }
         }
     }
 
