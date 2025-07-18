@@ -9,7 +9,7 @@ use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
 
@@ -391,6 +391,169 @@ pub async fn list_span_attributes_handler(
     Ok(Json(attributes))
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Aggregate {
+    Count,
+    Sum(String),
+    Avg(String),
+    Min(String),
+    Max(String),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum TimeBin {
+    Second,
+    Minute,
+    Hour,
+    Day,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TimeBinQuery {
+    pub bin: TimeBin,
+    pub value: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Filter {
+    pub column: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct QueryQuery {
+    aggregate: Aggregate,
+    filters: Option<Vec<Filter>>,
+    groupings: Option<Vec<String>>,
+    time_bin: Option<TimeBinQuery>,
+}
+
+struct SelectAgg {
+    pub ok: bool,
+    pub select: String,
+}
+
+fn time_bin_to_sql(input: &TimeBinQuery) -> String {
+    match input.bin {
+        TimeBin::Second => format!(
+            "DATE_BIN(INTERVAL '{} second', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            input.value
+        ),
+        TimeBin::Minute => format!(
+            "DATE_BIN(INTERVAL '{} minute', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            input.value
+        ),
+        TimeBin::Hour => format!(
+            "DATE_BIN(INTERVAL '{} hour', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            input.value
+        ),
+        TimeBin::Day => format!(
+            "DATE_BIN(INTERVAL '{} day', started_at, '1970-01-01 00:00:00'::TIMESTAMPTZ)",
+            input.value
+        ),
+    }
+}
+
+fn agg_to_select(agg: &Aggregate) -> SelectAgg {
+    let allowed_columns = vec![
+        "trace_id",
+        "operation_name",
+        "started_at",
+        "ended_at",
+        "duration_ns",
+        "status_code",
+        "kind",
+        "instrumentation_library",
+        "service_name",
+    ];
+
+    fn is_ok(column: &str, allowed_columns: &[&str]) -> bool {
+        allowed_columns.contains(&column)
+    }
+
+    match agg {
+        Aggregate::Count => SelectAgg {
+            ok: true,
+            select: "COUNT(*)".to_string(),
+        },
+        Aggregate::Sum(column) => SelectAgg {
+            ok: is_ok(&column, &allowed_columns),
+            select: format!("SUM({})", column),
+        },
+        Aggregate::Avg(column) => SelectAgg {
+            ok: is_ok(&column, &allowed_columns),
+            select: format!("AVG({})", column),
+        },
+        Aggregate::Min(column) => SelectAgg {
+            ok: is_ok(&column, &allowed_columns),
+            select: format!("MIN({})", column),
+        },
+        Aggregate::Max(column) => SelectAgg {
+            ok: is_ok(&column, &allowed_columns),
+            select: format!("MAX({})", column),
+        },
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TimeSeriesValue {
+    #[serde(with = "time::serde::rfc3339")]
+    pub end_time: OffsetDateTime,
+    pub value: f64,
+    pub group: Option<String>,
+}
+
+pub async fn query_handler(
+    State(pool): State<Arc<PgPool>>,
+    Query(query): Query<QueryQuery>,
+) -> Result<Json<Vec<TimeSeriesValue>>, StatusCode> {
+    let select = agg_to_select(&query.aggregate);
+
+    if !select.ok {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let time_bin_input = query.time_bin.unwrap_or(TimeBinQuery {
+        bin: TimeBin::Minute,
+        value: 1,
+    });
+
+    let time_bin_sql = time_bin_to_sql(&time_bin_input);
+
+    let query = format!(
+        "
+            SELECT
+            {time_bin_sql} AS time_bin,
+            {select}::DOUBLE PRECISION AS value
+            FROM span
+            GROUP BY time_bin
+            ORDER BY time_bin
+    ",
+        time_bin_sql = time_bin_sql,
+        select = select.select
+    );
+
+    let results = sqlx::query(&query)
+        .fetch_all(&*pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let mut time_series_values = Vec::new();
+
+    for r in results {
+        let time_bin = r.get::<OffsetDateTime, _>("time_bin");
+        let value: f64 = r.get("value");
+
+        time_series_values.push(TimeSeriesValue {
+            end_time: time_bin,
+            value,
+            group: None,
+        });
+    }
+
+    Ok(Json(time_series_values))
+}
+
 async fn health_check() -> &'static str {
     "OK"
 }
@@ -412,5 +575,6 @@ pub fn create_api_router(pool: Arc<PgPool>) -> Router {
         .route("/spans", get(list_spans_handler))
         .route("/logs", get(list_logs_handler))
         .route("/span-attributes", get(list_span_attributes_handler))
+        .route("/query", get(query_handler))
         .with_state(pool)
 }
