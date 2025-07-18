@@ -545,7 +545,7 @@ pub struct TimeSeriesValue {
 
 pub async fn query_handler(
     State(pool): State<Arc<PgPool>>,
-    Query(query): Query<QueryQuery>,
+    Json(query): Json<QueryQuery>,
 ) -> Result<Json<Vec<TimeSeriesValue>>, StatusCode> {
     let select = agg_to_select(&query.aggregate);
 
@@ -619,6 +619,6 @@ pub fn create_api_router(pool: Arc<PgPool>) -> Router {
         .route("/spans", get(list_spans_handler))
         .route("/logs", get(list_logs_handler))
         .route("/span-attributes", get(list_span_attributes_handler))
-        .route("/query", get(query_handler))
+        .route("/query", post(query_handler))
         .with_state(pool)
 }
