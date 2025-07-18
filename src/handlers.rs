@@ -549,7 +549,12 @@ fn build_query<'a>(params: &'a QuerySpec, agg: &'a SelectAgg) -> QueryBuilder<'a
         let mut i = 1;
 
         for filter in filters {
-            builder.push(&format!("{} = ${}", filter.column, filter.value));
+            if filter.column.is_empty() || !allowed_columns.contains(&filter.column.as_str()) {
+                panic!("Invalid filter column: {}", filter.column);
+            }
+
+            builder.push(&format!("{} = ", filter.column));
+            builder.push_bind(filter.value.as_str());
 
             if i < filters.len() {
                 builder.push(" AND ");
@@ -572,6 +577,16 @@ fn build_query<'a>(params: &'a QuerySpec, agg: &'a SelectAgg) -> QueryBuilder<'a
     }
 
     builder.push("\nORDER BY time_bin");
+
+    if params.group.is_some() {
+        let col = params.group.as_ref().unwrap();
+
+        if col.is_empty() || !allowed_columns.contains(&col.as_str()) {
+            panic!("Invalid ordering column: {}", col);
+        }
+
+        builder.push(&format!(", {}", col));
+    }
 
     builder
 }
