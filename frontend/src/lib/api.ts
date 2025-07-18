@@ -4,6 +4,10 @@ import type { TimeSeriesValue, QuerySpec } from "../types/timeseries";
 
 const API_BASE_URL = import.meta.env.VITE_STENCIL_API_URL || "http://localhost:8080";
 
+console.log("API Base URL:", API_BASE_URL);
+console.log("Vite environment variables:", import.meta.env);
+
+
 export interface SpanAttribute {
   key: string;
   value: string;
