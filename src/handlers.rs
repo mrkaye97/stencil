@@ -576,22 +576,22 @@ fn build_query<'a>(params: &'a QuerySpec) -> QueryBuilder<'a, Postgres> {
                 AggregateType::Sum(key) => {
                     builder.push("SUM((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION AS value");
+                    builder.push(")::DOUBLE PRECISION) AS value");
                 }
                 AggregateType::Avg(key) => {
                     builder.push("AVG((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION AS value");
+                    builder.push(")::DOUBLE PRECISION) AS value");
                 }
                 AggregateType::Min(key) => {
-                    builder.push("MIN(attributes ->> ");
+                    builder.push("MIN((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION AS value");
+                    builder.push(")::DOUBLE PRECISION) AS value");
                 }
                 AggregateType::Max(key) => {
-                    builder.push("MAX(attributes ->> ");
+                    builder.push("MAX((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION AS value");
+                    builder.push(")::DOUBLE PRECISION) AS value");
                 }
             };
         }
