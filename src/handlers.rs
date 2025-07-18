@@ -574,24 +574,24 @@ fn build_query<'a>(params: &'a QuerySpec) -> QueryBuilder<'a, Postgres> {
                     builder.push("COUNT(*)::DOUBLE PRECISION AS value");
                 }
                 AggregateType::Sum(key) => {
-                    builder.push("SUM((attributes ->> ");
+                    builder.push("COALESCE(SUM((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION) AS value");
+                    builder.push(")::DOUBLE PRECISION), 0.0) AS value");
                 }
                 AggregateType::Avg(key) => {
-                    builder.push("AVG((attributes ->> ");
+                    builder.push("COALESCE(AVG((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION) AS value");
+                    builder.push(")::DOUBLE PRECISION), 0.0) AS value");
                 }
                 AggregateType::Min(key) => {
-                    builder.push("MIN((attributes ->> ");
+                    builder.push("COALESCE(MIN((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION) AS value");
+                    builder.push(")::DOUBLE PRECISION), 0.0) AS value");
                 }
                 AggregateType::Max(key) => {
-                    builder.push("MAX((attributes ->> ");
+                    builder.push("COALESCE(MAX((attributes ->> ");
                     builder.push_bind(key);
-                    builder.push(")::DOUBLE PRECISION) AS value");
+                    builder.push(")::DOUBLE PRECISION), 0.0) AS value");
                 }
             };
         }
@@ -599,46 +599,47 @@ fn build_query<'a>(params: &'a QuerySpec) -> QueryBuilder<'a, Postgres> {
 
     builder.push("\nFROM span ");
 
+    let mut has_where_clause = false;
+
     if let Some(filters) = &params.filters {
-        builder.push("\nWHERE ");
-        let mut i = 1;
+        if !filters.is_empty() {
+            builder.push("\nWHERE ");
+            has_where_clause = true;
 
-        for filter in filters {
-            if filter.column.is_empty() || !allowed_columns.contains(&filter.column.as_str()) {
-                panic!("Invalid filter column: {}", filter.column);
+            for (i, filter) in filters.iter().enumerate() {
+                if filter.column.is_empty() || !allowed_columns.contains(&filter.column.as_str()) {
+                    panic!("Invalid filter column: {}", filter.column);
+                }
+
+                builder.push(&format!("{} = ", filter.column));
+                builder.push_bind(filter.value.as_str());
+
+                if i < filters.len() - 1 {
+                    builder.push(" AND ");
+                }
             }
+        }
+    }
 
-            builder.push(&format!("{} = ", filter.column));
-            builder.push_bind(filter.value.as_str());
-
-            if i < filters.len() {
-                builder.push(" AND ");
-            }
-
-            i += 1;
+    if &params.aggregate.source == &AggregateSource::SpanAttribute {
+        if !has_where_clause {
+            builder.push("\nWHERE ");
+            has_where_clause = true;
+        } else {
+            builder.push(" AND ");
         }
 
-        if &params.aggregate.source == &AggregateSource::SpanAttribute {
-            if !filters.is_empty() {
-                builder.push(" AND ");
-            }
+        builder.push("attributes IS NOT NULL");
 
-            builder.push("attributes IS NOT NULL");
-
-            if !filters.is_empty() {
-                builder.push(" AND ");
+        match &params.aggregate.agg_type {
+            AggregateType::Sum(key)
+            | AggregateType::Avg(key)
+            | AggregateType::Min(key)
+            | AggregateType::Max(key) => {
+                builder.push(" AND attributes ? ");
+                builder.push_bind(key.as_str());
             }
-
-            match &params.aggregate.agg_type {
-                AggregateType::Sum(key)
-                | AggregateType::Avg(key)
-                | AggregateType::Min(key)
-                | AggregateType::Max(key) => {
-                    builder.push("attributes ? ");
-                    builder.push_bind(key.as_str());
-                }
-                _ => {}
-            }
+            _ => {}
         }
     }
 
