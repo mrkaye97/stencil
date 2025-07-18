@@ -604,8 +604,6 @@ pub async fn query_handler(
     let mut builder = build_query(&query_spec, &select);
     let query = builder.build();
 
-    println!("Executing query: {}", query.sql());
-
     let results = query
         .fetch_all(&*pool)
         .await
