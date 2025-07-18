@@ -19,7 +19,7 @@ export default function Dashboard() {
       ? Math.round(
           traces.reduce((sum, trace) => sum + (trace.duration_ns || 0), 0) /
             traces.length /
-            1000000
+            1000000,
         )
       : 0,
   };
@@ -40,11 +40,16 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Traces
+              </CardTitle>
               <Network className="h-4 w-4 text-primary" aria-hidden="true" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+              <div
+                className="text-2xl font-bold text-foreground"
+                aria-live="polite"
+              >
                 {stats.totalTraces}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -59,7 +64,10 @@ export default function Dashboard() {
               <Database className="h-4 w-4 text-accent" aria-hidden="true" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+              <div
+                className="text-2xl font-bold text-foreground"
+                aria-live="polite"
+              >
                 {stats.totalLogs}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -74,7 +82,10 @@ export default function Dashboard() {
               <Activity className="h-4 w-4 text-chart-4" aria-hidden="true" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+              <div
+                className="text-2xl font-bold text-foreground"
+                aria-live="polite"
+              >
                 {stats.totalSpans}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -85,11 +96,16 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Avg Duration
+              </CardTitle>
               <Clock className="h-4 w-4 text-chart-5" aria-hidden="true" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground" aria-live="polite">
+              <div
+                className="text-2xl font-bold text-foreground"
+                aria-live="polite"
+              >
                 {stats.avgTraceDuration}ms
               </div>
               <p className="text-xs text-muted-foreground">
@@ -100,7 +116,10 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section aria-label="Recent activity" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section
+        aria-label="Recent activity"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+      >
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -225,31 +244,31 @@ export default function Dashboard() {
 
       <section aria-label="Quick actions">
         <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Search className="h-6 w-6 text-primary" />
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Search className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-foreground">
+                    Advanced Trace Filtering
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Filter traces by duration, service, status, span attributes,
+                    and more with our powerful filtering interface
+                  </p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-foreground">
-                  Advanced Trace Filtering
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Filter traces by duration, service, status, span attributes,
-                  and more with our powerful filtering interface
-                </p>
-              </div>
+              <Button
+                asChild
+                variant="default"
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Link to="/traces">Explore Traces</Link>
+              </Button>
             </div>
-            <Button
-              asChild
-              variant="default"
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Link to="/traces">Explore Traces</Link>
-            </Button>
-          </div>
-        </CardHeader>
+          </CardHeader>
         </Card>
       </section>
     </div>

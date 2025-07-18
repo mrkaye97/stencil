@@ -45,14 +45,14 @@ export default function TraceDetailPage() {
 
     const spanMap = new Map(spans.map((span) => [span.span_id, span]));
     const rootSpans = spans.filter(
-      (span) => !span.parent_span_id || !spanMap.has(span.parent_span_id)
+      (span) => !span.parent_span_id || !spanMap.has(span.parent_span_id),
     );
 
     const traceStartTime = Math.min(
-      ...spans.map((s) => new Date(s.start_time).getTime())
+      ...spans.map((s) => new Date(s.start_time).getTime()),
     );
     const traceEndTime = Math.max(
-      ...spans.map((s) => new Date(s.end_time).getTime())
+      ...spans.map((s) => new Date(s.end_time).getTime()),
     );
     const traceDuration = traceEndTime - traceStartTime;
 
@@ -61,7 +61,7 @@ export default function TraceDetailPage() {
         .filter((s) => s.parent_span_id === span.span_id)
         .sort(
           (a, b) =>
-            new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+            new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
         )
         .map((child) => buildTree(child, depth + 1));
 
@@ -76,7 +76,7 @@ export default function TraceDetailPage() {
     return rootSpans
       .sort(
         (a, b) =>
-          new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
       )
       .map((root) => buildTree(root));
   }, [spans]);

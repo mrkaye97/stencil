@@ -1,44 +1,48 @@
-import { createRoute, createRootRoute, createRouter } from '@tanstack/react-router'
-import Layout from './components/Layout'
-import Dashboard from './components/Dashboard'
-import TracesPage from './components/TracesPage'
-import TraceDetailPage from './components/TraceDetailPage'
-import LogsPage from './components/LogsPage'
-import TimeSeriesPage from './components/TimeSeriesPage'
+import {
+  createRoute,
+  createRootRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import Layout from "./components/Layout";
+import Dashboard from "./components/Dashboard";
+import TracesPage from "./components/TracesPage";
+import TraceDetailPage from "./components/TraceDetailPage";
+import LogsPage from "./components/LogsPage";
+import TimeSeriesPage from "./components/TimeSeriesPage";
 
 const rootRoute = createRootRoute({
   component: Layout,
-})
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: "/",
   component: Dashboard,
-})
+});
 
 const tracesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/traces',
+  path: "/traces",
   component: TracesPage,
-})
+});
 
 const traceDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/trace/$traceId',
+  path: "/trace/$traceId",
   component: TraceDetailPage,
-})
+});
 
 const logsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/logs',
+  path: "/logs",
   component: LogsPage,
-})
+});
 
 const timeSeriesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/analytics',
+  path: "/analytics",
   component: TimeSeriesPage,
-})
+});
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -46,12 +50,12 @@ const routeTree = rootRoute.addChildren([
   traceDetailRoute,
   logsRoute,
   timeSeriesRoute,
-])
+]);
 
-export const router = createRouter({ routeTree })
+export const router = createRouter({ routeTree });
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router
+    router: typeof router;
   }
 }

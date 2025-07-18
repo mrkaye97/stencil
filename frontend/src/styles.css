@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @plugin "tailwindcss-animate";
 
@@ -7,111 +7,111 @@
 body {
   @apply m-0;
   font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
   font-family:
-    source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 :root {
   /* Oceanic Theme - User's Preferred Palette */
-  --background: #263238;    /* Oceanic background */
-  --foreground: #EEFFFF;    /* White/Black color for primary text */
+  --background: #263238; /* Oceanic background */
+  --foreground: #eeffff; /* White/Black color for primary text */
 
-  --card: #32424A;          /* Second background for cards */
-  --card-foreground: #EEFFFF;
+  --card: #32424a; /* Second background for cards */
+  --card-foreground: #eeffff;
 
-  --popover: #2E3C43;       /* Buttons color for popovers */
-  --popover-foreground: #EEFFFF;
+  --popover: #2e3c43; /* Buttons color for popovers */
+  --popover-foreground: #eeffff;
 
-  --primary: #009688;       /* Accent color - teal */
-  --primary-foreground: #FFFFFF;
+  --primary: #009688; /* Accent color - teal */
+  --primary-foreground: #ffffff;
 
-  --secondary: #425B67;     /* Highlight color for secondary backgrounds */
-  --secondary-foreground: #EEFFFF;
+  --secondary: #425b67; /* Highlight color for secondary backgrounds */
+  --secondary-foreground: #eeffff;
 
-  --muted: #314549;         /* Active color for muted backgrounds */
-  --muted-foreground: #B0BEC5;  /* Foreground color for muted text */
+  --muted: #314549; /* Active color for muted backgrounds */
+  --muted-foreground: #b0bec5; /* Foreground color for muted text */
 
-  --accent: #80CBC4;        /* Links color for accents */
+  --accent: #80cbc4; /* Links color for accents */
   --accent-foreground: #263238;
 
-  --destructive: #FF5370;   /* Error color */
-  --destructive-foreground: #FFFFFF;
+  --destructive: #ff5370; /* Error color */
+  --destructive-foreground: #ffffff;
 
-  --border: #2A373E;        /* Border color */
-  --input: #32424A;         /* Second background for inputs */
-  --ring: #009688;          /* Accent color for focus rings */
+  --border: #2a373e; /* Border color */
+  --input: #32424a; /* Second background for inputs */
+  --ring: #009688; /* Accent color for focus rings */
 
   /* Chart colors using oceanic palette */
-  --chart-1: #009688;       /* Accent - Teal */
-  --chart-2: #C3E88D;       /* Green */
-  --chart-3: #C792EA;       /* Purple */
-  --chart-4: #FFCB6B;       /* Yellow */
-  --chart-5: #82AAFF;       /* Blue */
+  --chart-1: #009688; /* Accent - Teal */
+  --chart-2: #c3e88d; /* Green */
+  --chart-3: #c792ea; /* Purple */
+  --chart-4: #ffcb6b; /* Yellow */
+  --chart-5: #82aaff; /* Blue */
 
   --radius: 0.625rem;
 
   /* Sidebar specific colors */
-  --sidebar: #1E272C;       /* Contrast color for sidebar */
-  --sidebar-foreground: #B0BEC5;
+  --sidebar: #1e272c; /* Contrast color for sidebar */
+  --sidebar-foreground: #b0bec5;
   --sidebar-primary: #009688;
-  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #314549;
-  --sidebar-accent-foreground: #EEFFFF;
-  --sidebar-border: #2A373E;
+  --sidebar-accent-foreground: #eeffff;
+  --sidebar-border: #2a373e;
   --sidebar-ring: #009688;
 
   /* Additional semantic colors */
-  --success: #C3E88D;       /* Green color */
-  --warning: #FFCB6B;       /* Yellow color */
-  --info: #82AAFF;          /* Blue color */
-  --selection: #546E7A;     /* Selection background */
-  --disabled: #415967;      /* Disabled color */
+  --success: #c3e88d; /* Green color */
+  --warning: #ffcb6b; /* Yellow color */
+  --info: #82aaff; /* Blue color */
+  --selection: #546e7a; /* Selection background */
+  --disabled: #415967; /* Disabled color */
 }
 
 .dark {
   --background: #263238;
-  --foreground: #EEFFFF;
-  --card: #32424A;
-  --card-foreground: #EEFFFF;
-  --popover: #2E3C43;
-  --popover-foreground: #EEFFFF;
+  --foreground: #eeffff;
+  --card: #32424a;
+  --card-foreground: #eeffff;
+  --popover: #2e3c43;
+  --popover-foreground: #eeffff;
   --primary: #009688;
-  --primary-foreground: #FFFFFF;
-  --secondary: #425B67;
-  --secondary-foreground: #EEFFFF;
+  --primary-foreground: #ffffff;
+  --secondary: #425b67;
+  --secondary-foreground: #eeffff;
   --muted: #314549;
-  --muted-foreground: #B0BEC5;
-  --accent: #80CBC4;
+  --muted-foreground: #b0bec5;
+  --accent: #80cbc4;
   --accent-foreground: #263238;
-  --destructive: #FF5370;
-  --destructive-foreground: #FFFFFF;
-  --border: #2A373E;
-  --input: #32424A;
+  --destructive: #ff5370;
+  --destructive-foreground: #ffffff;
+  --border: #2a373e;
+  --input: #32424a;
   --ring: #009688;
   --chart-1: #009688;
-  --chart-2: #C3E88D;
-  --chart-3: #C792EA;
-  --chart-4: #FFCB6B;
-  --chart-5: #82AAFF;
-  --sidebar: #1E272C;
-  --sidebar-foreground: #B0BEC5;
+  --chart-2: #c3e88d;
+  --chart-3: #c792ea;
+  --chart-4: #ffcb6b;
+  --chart-5: #82aaff;
+  --sidebar: #1e272c;
+  --sidebar-foreground: #b0bec5;
   --sidebar-primary: #009688;
-  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #314549;
-  --sidebar-accent-foreground: #EEFFFF;
-  --sidebar-border: #2A373E;
+  --sidebar-accent-foreground: #eeffff;
+  --sidebar-border: #2a373e;
   --sidebar-ring: #009688;
-  --success: #C3E88D;
-  --warning: #FFCB6B;
-  --info: #82AAFF;
-  --selection: #546E7A;
+  --success: #c3e88d;
+  --warning: #ffcb6b;
+  --info: #82aaff;
+  --selection: #546e7a;
   --disabled: #415967;
 }
 

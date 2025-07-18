@@ -150,7 +150,7 @@ export default function TimeSeriesPage() {
           acc[time][point.group || "unknown"] = point.value;
           return acc;
         },
-        {} as Record<string, any>
+        {} as Record<string, any>,
       );
 
       return Object.values(groupedData);
@@ -167,7 +167,7 @@ export default function TimeSeriesPage() {
   const groups = useMemo(() => {
     if (!timeSeriesData || groupBy === "__none__") return [];
     const uniqueGroups = new Set(
-      timeSeriesData.map((point) => point.group || "unknown")
+      timeSeriesData.map((point) => point.group || "unknown"),
     );
     return Array.from(uniqueGroups);
   }, [timeSeriesData, groupBy]);
@@ -177,10 +177,10 @@ export default function TimeSeriesPage() {
     if (!allSpans) return { services: [], operations: [] };
 
     const services = new Set(
-      allSpans.map((span) => span.service_name).filter(Boolean)
+      allSpans.map((span) => span.service_name).filter(Boolean),
     );
     const operations = new Set(
-      allSpans.map((span) => span.operation_name).filter(Boolean)
+      allSpans.map((span) => span.operation_name).filter(Boolean),
     );
 
     return {
@@ -196,7 +196,7 @@ export default function TimeSeriesPage() {
   const updateFilter = (
     index: number,
     field: keyof QueryFilter,
-    value: string
+    value: string,
   ) => {
     const newFilters = [...filters];
     newFilters[index] = { ...newFilters[index], [field]: value };

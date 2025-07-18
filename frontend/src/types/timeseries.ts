@@ -5,7 +5,7 @@ export interface TimeSeriesValue {
 }
 
 export interface TimeBinQuery {
-  bin: 'Second' | 'Minute' | 'Hour' | 'Day';
+  bin: "Second" | "Minute" | "Hour" | "Day";
   value: number;
 }
 
@@ -16,12 +16,12 @@ export interface Filter {
 
 export interface Aggregate {
   agg_type:
-    | 'Count'
+    | "Count"
     | { Sum: string }
     | { Avg: string }
     | { Min: string }
     | { Max: string };
-  source: 'SpanColumn' | 'SpanAttribute';
+  source: "SpanColumn" | "SpanAttribute";
 }
 
 export interface QuerySpec {

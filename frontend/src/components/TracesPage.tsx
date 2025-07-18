@@ -165,10 +165,10 @@ export default function TracesPage() {
     }
 
     const services = new Set(
-      allSpans.map((span) => span.service_name).filter(Boolean) as string[]
+      allSpans.map((span) => span.service_name).filter(Boolean) as string[],
     );
     const operations = new Set(
-      allSpans.map((span) => span.operation_name).filter(Boolean) as string[]
+      allSpans.map((span) => span.operation_name).filter(Boolean) as string[],
     );
     const statusCodes = new Set(allSpans.map((span) => span.status_code));
 
@@ -186,7 +186,7 @@ export default function TracesPage() {
 
     if (searchTerm) {
       return searchResults.filter((trace) =>
-        trace.trace_id.toLowerCase().includes(searchTerm.toLowerCase())
+        trace.trace_id.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -207,8 +207,8 @@ export default function TracesPage() {
   const updateFilter = (id: string, updates: Partial<QueryFilter>) => {
     setFilters(
       filters.map((filter) =>
-        filter.id === id ? { ...filter, ...updates } : filter
-      )
+        filter.id === id ? { ...filter, ...updates } : filter,
+      ),
     );
   };
 
@@ -264,7 +264,10 @@ export default function TracesPage() {
             <label htmlFor="trace-search" className="sr-only">
               Search traces by ID
             </label>
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <Input
               id="trace-search"
               placeholder="Search traces by ID..."
@@ -348,7 +351,7 @@ export default function TracesPage() {
 
           {/* Advanced Filters */}
           {showAdvancedFilters && (
-            <div 
+            <div
               id="advanced-filters"
               className="space-y-3 pt-4 border-t border-border/50"
               role="region"
@@ -425,13 +428,13 @@ function TraceCard({ trace }: { trace: Trace }) {
   const status = getStatusInfo();
 
   return (
-    <article 
+    <article
       className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-accent/50 hover:bg-card/80 transition-all duration-200"
       aria-labelledby={`trace-${trace.trace_id}`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-3">
-          <h3 
+          <h3
             id={`trace-${trace.trace_id}`}
             className="text-sm font-medium text-foreground truncate font-mono"
           >
@@ -444,7 +447,7 @@ function TraceCard({ trace }: { trace: Trace }) {
           >
             {trace.span_count} spans
           </Badge>
-          <Badge 
+          <Badge
             variant={status.variant}
             aria-label={`Trace performance status: ${status.label}`}
           >
@@ -505,7 +508,7 @@ function FilterRow({
   onRemove: () => void;
 }) {
   const getOperatorOptions = (
-    type: FilterType
+    type: FilterType,
   ): { value: FilterOperator; label: string }[] => {
     switch (type) {
       case "duration":
