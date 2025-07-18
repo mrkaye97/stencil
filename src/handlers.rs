@@ -10,7 +10,7 @@ use opentelemetry_proto::tonic::collector::logs::v1::ExportLogsServiceRequest;
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sqlx::{Execute, PgPool, Postgres, QueryBuilder, Row};
+use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 
 use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
 
