@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Trace, Span, Log } from '../types/api';
+import type { TimeSeriesValue, QuerySpec } from '../types/timeseries';
 
 const API_BASE_URL = 'http://localhost:8080';
 
@@ -139,11 +140,34 @@ export const useSpanAttributes = () => {
   });
 };
 
+const fetchTimeSeriesData = async (querySpec: QuerySpec): Promise<TimeSeriesValue[]> => {
+  const response = await fetch(`${API_BASE_URL}/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(querySpec),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch time series data');
+  }
+  return response.json();
+};
+
 export const useSearchTraces = (query: SearchTracesQuery, enabled = true) => {
   return useQuery({
     queryKey: ['search-traces', query],
     queryFn: () => fetchSearchTraces(query),
     enabled: enabled,
     staleTime: 10000,
+  });
+};
+
+export const useTimeSeriesData = (querySpec: QuerySpec, enabled = true) => {
+  return useQuery({
+    queryKey: ['time-series', querySpec],
+    queryFn: () => fetchTimeSeriesData(querySpec),
+    enabled: enabled && querySpec.aggregate.agg_type !== null,
+    staleTime: 30000,
   });
 };

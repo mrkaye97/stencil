@@ -7,6 +7,7 @@ import {
   Home,
   Network,
   Search,
+  TrendingUp,
 } from "lucide-react";
 
 const navigationItems = [
@@ -24,6 +25,11 @@ const navigationItems = [
     name: "Logs",
     href: "/logs",
     icon: Database,
+  },
+  {
+    name: "Analytics",
+    href: "/analytics",
+    icon: TrendingUp,
   },
 ];
 
