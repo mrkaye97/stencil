@@ -52,8 +52,6 @@ const routeTree = rootRoute.addChildren([
   timeSeriesRoute,
 ]);
 
-console.log("Router initialized with base path:", import.meta.env.VITE_STENCIL_BASE_PATH);
-
 export const router = createRouter({ routeTree, basepath: import.meta.env.VITE_STENCIL_BASE_PATH });
 
 declare module "@tanstack/react-router" {
