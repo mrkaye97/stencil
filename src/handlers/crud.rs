@@ -93,7 +93,7 @@ pub trait SpanExt {
     fn duration_ns(&self) -> Result<i64, Box<dyn std::error::Error>>;
     fn status_code(&self) -> i32;
     fn status_message(&self) -> Option<String>;
-    fn attributes_map(&self) -> HashMap<String, String>;
+    fn attributes_typed(&self) -> HashMap<String, SpanAttributeValue>;
     fn span_kind_to_db(&self) -> DbSpanKind;
 }
 
@@ -150,10 +150,10 @@ impl SpanExt for Span {
         })
     }
 
-    fn attributes_map(&self) -> HashMap<String, String> {
+    fn attributes_typed(&self) -> HashMap<String, SpanAttributeValue> {
         self.attributes
             .iter()
-            .map(|kv| (kv.key.clone(), any_value_to_string(&kv.value)))
+            .map(|kv| (kv.key.clone(), any_value_to_span_attribute(&kv.value)))
             .collect()
     }
 
@@ -269,6 +269,36 @@ fn any_value_to_string(value: &Option<AnyValue>) -> String {
     }
 }
 
+fn any_value_to_span_attribute(value: &Option<AnyValue>) -> SpanAttributeValue {
+    match value {
+        Some(any_value) => match &any_value.value {
+            Some(Value::StringValue(s)) => SpanAttributeValue::String(s.clone()),
+            Some(Value::BoolValue(b)) => SpanAttributeValue::Bool(*b),
+            Some(Value::IntValue(i)) => SpanAttributeValue::Int(*i),
+            Some(Value::DoubleValue(d)) => SpanAttributeValue::Float(*d),
+            Some(Value::ArrayValue(arr)) => {
+                let values: Vec<String> = arr
+                    .values
+                    .iter()
+                    .map(|v| any_value_to_string(&Some(v.clone())))
+                    .collect();
+                SpanAttributeValue::String(format!("[{}]", values.join(", ")))
+            }
+            Some(Value::KvlistValue(kvlist)) => {
+                let pairs: Vec<String> = kvlist
+                    .values
+                    .iter()
+                    .map(|kv| format!("{}:{}", kv.key, any_value_to_string(&kv.value)))
+                    .collect();
+                SpanAttributeValue::String(format!("{{{}}}", pairs.join(", ")))
+            }
+            Some(Value::BytesValue(bytes)) => SpanAttributeValue::String(hex::encode(bytes)),
+            None => SpanAttributeValue::String(String::new()),
+        },
+        None => SpanAttributeValue::String(String::new()),
+    }
+}
+
 fn extract_service_name(resource: &Option<Resource>) -> Option<String> {
     resource
         .as_ref()?
@@ -343,7 +373,8 @@ pub async fn insert_spans(
             .push_bind(span.status_message.clone())
             .push_bind(span.span_kind.clone())
             .push_bind(span.instrumentation_library.clone())
-            .push_bind(span.service_name.clone());
+            .push_bind(span.service_name.clone())
+            .push_bind(sqlx::types::Json(&span.attributes));
     });
 
     let query = query_builder.build();
@@ -498,20 +529,8 @@ pub fn flatten_spans(
                             tonic::Status::invalid_argument(format!("Invalid duration: {}", e))
                         })?;
 
-                        let attributes: HashMap<String, SpanAttributeValue> = span
-                            .attributes_map()
-                            .into_iter()
-                            .map(|(k, v)| {
-                                let value = match v.parse::<i32>() {
-                                    Ok(i) => SpanAttributeValue::Int(i.into()),
-                                    Err(_) => match v.parse::<f64>() {
-                                        Ok(f) => SpanAttributeValue::Float(f),
-                                        Err(_) => SpanAttributeValue::String(v),
-                                    },
-                                };
-                                (k, value)
-                            })
-                            .collect();
+                        let attributes: HashMap<String, SpanAttributeValue> =
+                            span.attributes_typed();
 
                         let writeable_span = WriteableSpan {
                             span_id: span_id.clone(),
