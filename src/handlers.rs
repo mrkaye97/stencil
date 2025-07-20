@@ -650,6 +650,9 @@ fn build_query<'a>(params: &'a QuerySpec) -> QueryBuilder<'a, Postgres> {
             | AggregateType::Max(key) => {
                 builder.push(" AND attributes ? ");
                 builder.push_bind(key.as_str());
+                builder.push("AND jsonb_typeof(attributes -> ");
+                builder.push_bind(key.as_str());
+                builder.push(") = 'number'");
             }
             _ => {}
         }

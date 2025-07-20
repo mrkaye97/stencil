@@ -52,7 +52,7 @@ const routeTree = rootRoute.addChildren([
   timeSeriesRoute,
 ]);
 
-export const router = createRouter({ routeTree, basepath: import.meta.env.VITE_STENCIL_BASE_PATH });
+export const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
   interface Register {
